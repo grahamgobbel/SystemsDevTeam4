@@ -1,0 +1,5 @@
+# No third-party packages are required — the project uses only Python
+# standard-library modules (sqlite3, os, datetime).
+#
+# Add any future dependencies below, one per line, e.g.:
+# requests==2.31.0
