@@ -4,16 +4,11 @@ A role-based scheduling application for TCU Admissions ambassadors and administr
 
 ## Screens
 
-- Login with role-based access for admin and ambassador users.
+- Email-based login for admin and ambassador views during development.
 - Ambassador dashboard with upcoming assignments and notifications.
 - Availability module with a weekly drafting view and dashboard grid.
 - Profile management for academic information and personality traits.
 - Admin dashboard for tours, assignments, and ambassador roster management.
-
-## Demo Accounts
-
-- Ambassador: `graham.gobbel@tcu.edu` / `frog2026`
-- Admin: `admin@tcu.edu` / `frog2026`
 
 ## Run
 

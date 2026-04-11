@@ -6,8 +6,10 @@ import sqlite3
 from datetime import date
 
 
-VALID_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-VALID_PRIORITIES = ["1st Priority", "2nd Priority", "3rd Priority", "Low Priority"]
+VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
+              "Thursday", "Friday", "Saturday", "Sunday"]
+VALID_PRIORITIES = ["1st Priority",
+                    "2nd Priority", "3rd Priority", "Low Priority"]
 VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
 
 
@@ -77,14 +79,22 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         return
 
     users = [
-        ("Admin Dashboard", "admin@tcu.edu", "frog2026", "admin", None, None, None, None, "Active", None, 0, 0),
-        ("Ambassador User", "graham.gobbel@tcu.edu", "frog2026", "ambassador", "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
-        ("Emily Johnson", "emily.johnson@tcu.edu", "frog2026", "ambassador", "Marketing", "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
-        ("Michael Chen", "michael.chen@tcu.edu", "frog2026", "ambassador", "Finance", "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
-        ("Sarah Williams", "sarah.williams@tcu.edu", "frog2026", "ambassador", "Business Information Systems", "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
-        ("David Martinez", "david.martinez@tcu.edu", "frog2026", "ambassador", "Accounting", "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
-        ("Jessica Brown", "jessica.brown@tcu.edu", "frog2026", "ambassador", "Strategic Communication", "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
-        ("James Wilson", "james.wilson@tcu.edu", "frog2026", "ambassador", "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
+        ("Admin Dashboard", "admin@tcu.edu", "", "admin",
+         None, None, None, None, "Active", None, 0, 0),
+        ("Ambassador User", "graham.gobbel@tcu.edu", "", "ambassador",
+         "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
+        ("Emily Johnson", "emily.johnson@tcu.edu", "", "ambassador", "Marketing",
+         "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
+        ("Michael Chen", "michael.chen@tcu.edu", "", "ambassador", "Finance",
+         "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
+        ("Sarah Williams", "sarah.williams@tcu.edu", "", "ambassador", "Business Information Systems",
+         "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
+        ("David Martinez", "david.martinez@tcu.edu", "", "ambassador", "Accounting",
+         "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
+        ("Jessica Brown", "jessica.brown@tcu.edu", "", "ambassador", "Strategic Communication",
+         "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
+        ("James Wilson", "james.wilson@tcu.edu", "", "ambassador",
+         "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
     ]
     conn.executemany(
         """
@@ -96,13 +106,18 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         users,
     )
 
-    ambassador_id = conn.execute("SELECT id FROM users WHERE email = 'graham.gobbel@tcu.edu'").fetchone()[0]
+    ambassador_id = conn.execute(
+        "SELECT id FROM users WHERE email = 'graham.gobbel@tcu.edu'").fetchone()[0]
     notifications = [
-        (ambassador_id, "New schedule posted for next month (April)", "Please review and accept", "success", "1 hour ago"),
-        (ambassador_id, "Tour conflict with your business leadership in APSU5 dm", "Review your submitted schedule", "warning", "2 minutes ago"),
-        (ambassador_id, "There was a conflict with your business leadership", "Winter Miller requested you last Friday", "info", "1 hour ago"),
+        (ambassador_id, "New schedule posted for next month (April)",
+         "Please review and accept", "success", "1 hour ago"),
+        (ambassador_id, "Tour conflict with your business leadership in APSU5 dm",
+         "Review your submitted schedule", "warning", "2 minutes ago"),
+        (ambassador_id, "There was a conflict with your business leadership",
+         "Winter Miller requested you last Friday", "info", "1 hour ago"),
     ]
-    conn.executemany("INSERT INTO notifications (user_id, title, detail, kind, age_label) VALUES (?, ?, ?, ?, ?)", notifications)
+    conn.executemany(
+        "INSERT INTO notifications (user_id, title, detail, kind, age_label) VALUES (?, ?, ?, ?, ?)", notifications)
 
     availability = [
         (ambassador_id, "Monday", "10:00 AM", "12:00 PM", "1st Priority", 1),
@@ -117,9 +132,12 @@ def initialize_database(conn: sqlite3.Connection) -> None:
 
     tours = [
         ("Tour Types", "2026-04-25", "01:30 PM", "03:30 PM", "Location", 1, 1),
-        ("Freshman Orientation", "2026-04-26", "09:00 AM", "12:00 PM", "Brown-Lupton University Union", 1, 1),
-        ("Monday at TCU", "2026-04-28", "10:00 AM", "11:30 AM", "Admissions Office", 2, 0),
-        ("Transfer Student Tour", "2026-04-22", "11:00 AM", "01:00 PM", "Admissions Office", 2, 0),
+        ("Freshman Orientation", "2026-04-26", "09:00 AM",
+         "12:00 PM", "Brown-Lupton University Union", 1, 1),
+        ("Monday at TCU", "2026-04-28", "10:00 AM",
+         "11:30 AM", "Admissions Office", 2, 0),
+        ("Transfer Student Tour", "2026-04-22", "11:00 AM",
+         "01:00 PM", "Admissions Office", 2, 0),
     ]
     conn.executemany(
         "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -131,21 +149,58 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         (2, ambassador_id),
         (4, 3),
     ]
-    conn.executemany("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", assignments)
+    conn.executemany(
+        "INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", assignments)
     conn.commit()
 
 
 def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
+    normalized_email = email.strip()
+    if not normalized_email:
+        return None
+
+    normalized_role = role if role in {"admin", "ambassador"} else "ambassador"
     row = conn.execute(
-        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?) AND password = ? AND role = ?",
-        (email, password, role),
+        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
+        (normalized_email,),
+    ).fetchone()
+
+    if row:
+        if row["role"] != normalized_role:
+            conn.execute("UPDATE users SET role = ? WHERE id = ?",
+                         (normalized_role, row["id"]))
+            conn.commit()
+            row = conn.execute(
+                "SELECT id, name, email, role FROM users WHERE id = ?",
+                (row["id"],),
+            ).fetchone()
+        return dict(row)
+
+    local_part = normalized_email.split(
+        "@", 1)[0] if "@" in normalized_email else normalized_email
+    display_name = " ".join(part.capitalize() for part in local_part.replace(
+        ".", " ").replace("_", " ").replace("-", " ").split()) or normalized_email
+    conn.execute(
+        """
+        INSERT INTO users (
+            name, email, password, role, major, minor, year, personality, status,
+            ambassador_since, tours_completed, total_hours
+        ) VALUES (?, ?, '', ?, NULL, NULL, NULL, NULL, 'Active', NULL, 0, 0)
+        """,
+        (display_name, normalized_email, normalized_role),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
+        (normalized_email,),
     ).fetchone()
     return dict(row) if row else None
 
 
 def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
     user = _get_user(conn, user_id, "ambassador")
-    notifications = [dict(row) for row in conn.execute("SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id", (user_id,)).fetchall()]
+    notifications = [dict(row) for row in conn.execute(
+        "SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id", (user_id,)).fetchall()]
     assignments = [
         dict(row)
         for row in conn.execute(
@@ -166,7 +221,8 @@ def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
 
 def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, message: str = "", error: str = "") -> dict:
     user = _get_user(conn, user_id, "ambassador")
-    slots = [dict(row) for row in conn.execute("SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY day, start_time", (user_id,)).fetchall()]
+    slots = [dict(row) for row in conn.execute(
+        "SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY day, start_time", (user_id,)).fetchall()]
     return {
         "user": user,
         "view": view if view in {"dashboard", "weekly"} else "dashboard",
@@ -196,7 +252,8 @@ def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = ""
 
 def build_admin_dashboard(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
     user = _get_user(conn, user_id, "admin")
-    ambassadors = [dict(row) for row in conn.execute("SELECT id, name, email, total_hours, major, year FROM users WHERE role = 'ambassador' ORDER BY name").fetchall()]
+    ambassadors = [dict(row) for row in conn.execute(
+        "SELECT id, name, email, total_hours, major, year FROM users WHERE role = 'ambassador' ORDER BY name").fetchall()]
     tours = [
         dict(row)
         for row in conn.execute(
@@ -287,7 +344,8 @@ def assign_ambassador_to_tour(conn: sqlite3.Connection, tour_id: int, ambassador
     ).fetchone()[0]
     if exists:
         return False, "That ambassador is already assigned to this tour."
-    conn.execute("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", (tour_id, ambassador_id))
+    conn.execute("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)",
+                 (tour_id, ambassador_id))
     conn.commit()
     return True, "Ambassador assigned to the tour."
 
@@ -300,7 +358,7 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
     if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
         return False, "Only one profile is allowed per ambassador email."
     conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, 'frog2026', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
         (name, email, major, year, str(date.today().year)),
     )
     conn.commit()
@@ -310,10 +368,14 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
 def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
     if ambassador_id <= 0:
         return False, "Select a valid ambassador."
-    conn.execute("DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
-    conn.execute("DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
-    conn.execute("DELETE FROM notifications WHERE user_id = ?", (ambassador_id,))
-    conn.execute("DELETE FROM users WHERE id = ? AND role = 'ambassador'", (ambassador_id,))
+    conn.execute(
+        "DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
+    conn.execute(
+        "DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
+    conn.execute("DELETE FROM notifications WHERE user_id = ?",
+                 (ambassador_id,))
+    conn.execute(
+        "DELETE FROM users WHERE id = ? AND role = 'ambassador'", (ambassador_id,))
     conn.commit()
     return True, "Ambassador removed from the roster."
 
@@ -325,7 +387,8 @@ def publish_tours(conn: sqlite3.Connection):
 
 
 def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
-    row = conn.execute("SELECT * FROM users WHERE id = ? AND role = ?", (user_id, role)).fetchone()
+    row = conn.execute(
+        "SELECT * FROM users WHERE id = ? AND role = ?", (user_id, role)).fetchone()
     if not row:
         raise PermissionError
     return dict(row)

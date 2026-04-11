@@ -54,16 +54,12 @@ def _render_login(context: dict) -> str:
     <div class=\"login-card\">
         <div class=\"logo-badge\">TCU</div>
         <h1>Ambassador Scheduling</h1>
-        <p class=\"hero-copy\">Sign in to manage your schedule and availability</p>
+        <p class=\"hero-copy\">Enter any email to continue into the matching dashboard</p>
         {message}
         {error}
         <form method=\"post\" action=\"/login\" class=\"login-form\">
             <label>Email Address <span class=\"required\">*</span></label>
             <input type=\"email\" name=\"email\" placeholder=\"john.doe@tcu.edu\" required>
-            <p class=\"field-help\">Format: firstname.lastname@tcu.edu</p>
-
-            <label>Password <span class=\"required\">*</span></label>
-            <input type=\"password\" name=\"password\" placeholder=\"Enter your password\" required>
 
             <label>Select Role <span class=\"required\">*</span></label>
             <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"admin\" required> <span>Admin</span></label>
@@ -71,12 +67,7 @@ def _render_login(context: dict) -> str:
 
             <button class=\"primary large\" type=\"submit\">Login</button>
         </form>
-        <p class=\"forgot-link\">Forgot Password?</p>
-        <div class=\"demo-box\">
-            <strong>Demo login</strong>
-            <p>Ambassador: graham.gobbel@tcu.edu / frog2026</p>
-            <p>Admin: admin@tcu.edu / frog2026</p>
-        </div>
+        <p class=\"field-help\">Login is open for development use. Credentials are not enforced right now.</p>
     </div>
 </body>
 </html>"""
@@ -84,8 +75,10 @@ def _render_login(context: dict) -> str:
 
 def _render_ambassador_dashboard(context: dict) -> str:
     user = context["user"]
-    assignments = "".join(_assignment_card(item) for item in context["assignments"])
-    notifications = "".join(_notification_card(item) for item in context["notifications"])
+    assignments = "".join(_assignment_card(item)
+                          for item in context["assignments"])
+    notifications = "".join(_notification_card(item)
+                            for item in context["notifications"])
     stats = context["stats"]
     content = f"""
     <section class=\"content-main\">
@@ -161,9 +154,11 @@ def _render_availability(context: dict) -> str:
 def _render_profile(context: dict) -> str:
     user = context["user"]
     major_options = _options(context["majors"], user.get("major", ""))
-    minor_options = _options(context["minors"], user.get("minor", ""), allow_blank_label="Select your minor")
+    minor_options = _options(context["minors"], user.get(
+        "minor", ""), allow_blank_label="Select your minor")
     year_options = _options(context["years"], user.get("year", ""))
-    personality_options = _options(context["personalities"], user.get("personality", ""))
+    personality_options = _options(
+        context["personalities"], user.get("personality", ""))
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -208,8 +203,10 @@ def _render_profile(context: dict) -> str:
 def _render_admin(context: dict) -> str:
     user = context["user"]
     stat = context["stats"]
-    tours_markup = "".join(_tour_card(item, user['id']) for item in context["tours"])
-    ambassadors_markup = "".join(_ambassador_row(item, user['id']) for item in context["ambassadors"])
+    tours_markup = "".join(_tour_card(
+        item, user['id']) for item in context["tours"])
+    ambassadors_markup = "".join(_ambassador_row(
+        item, user['id']) for item in context["ambassadors"])
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -306,14 +303,19 @@ def _top_nav(user: dict, active: str, role: str) -> str:
 def _side_nav(user: dict, active: str, role: str) -> str:
     items = []
     if role == "admin":
-        items.append(("Admin Dashboard", f"/admin?user={user['id']}&role=admin", active == "admin"))
+        items.append(
+            ("Admin Dashboard", f"/admin?user={user['id']}&role=admin", active == "admin"))
     else:
         items.extend([
-            ("Dashboard", f"/ambassador/dashboard?user={user['id']}&role=ambassador", active == "home"),
-            ("Submit Availability", f"/ambassador/availability?user={user['id']}&role=ambassador&view=weekly", active == "availability"),
-            ("Profile Settings", f"/ambassador/profile?user={user['id']}&role=ambassador", active == "profile"),
+            ("Dashboard",
+             f"/ambassador/dashboard?user={user['id']}&role=ambassador", active == "home"),
+            ("Submit Availability",
+             f"/ambassador/availability?user={user['id']}&role=ambassador&view=weekly", active == "availability"),
+            ("Profile Settings",
+             f"/ambassador/profile?user={user['id']}&role=ambassador", active == "profile"),
         ])
-    links = "".join([f'<a class="quick-link {"active" if is_active else ""}" href="{href}">{label}</a>' for label, href, is_active in items])
+    links = "".join(
+        [f'<a class="quick-link {"active" if is_active else ""}" href="{href}">{label}</a>' for label, href, is_active in items])
     return f'<p class="quick-title">Quick Actions</p>{links}'
 
 
@@ -338,11 +340,14 @@ def _availability_grid(context: dict) -> str:
     for time_label in context["time_labels"]:
         grid_cells.append(f'<div class="time-col">{time_label}</div>')
         for day in context["days"]:
-            slot = next((item for item in slots if item["day"] == day and item["start_time"].startswith(time_label.split(":")[0])), None)
+            slot = next((item for item in slots if item["day"] == day and item["start_time"].startswith(
+                time_label.split(":")[0])), None)
             label = escape(slot["priority"]) if slot else ""
             cls = _priority_class(slot["priority"]) if slot else "not-set"
-            grid_cells.append(f'<div class="calendar-cell {cls}">{label}</div>')
-    headings = "".join([f'<div class="day-head"><strong>{day[:3]}</strong><span>{num}</span></div>' for day, num in zip(context["days"], ["4/6","4/7","4/8","4/9","4/10","4/11","4/12"])])
+            grid_cells.append(
+                f'<div class="calendar-cell {cls}">{label}</div>')
+    headings = "".join([f'<div class="day-head"><strong>{day[:3]}</strong><span>{num}</span></div>' for day, num in zip(
+        context["days"], ["4/6", "4/7", "4/8", "4/9", "4/10", "4/11", "4/12"])])
     return f"""
     <section class=\"dashboard-panel\">
         <div class=\"panel-header\"><div><h3>Availability Dashboard</h3><p>Visual overview of your availability across weeks</p></div><div class=\"calendar-controls\"><span class=\"ghost-chip\">Today</span></div></div>
@@ -443,7 +448,8 @@ def _options(options: list[str], current: str, allow_blank_label: str = "Select"
         html.append(f'<option value=""{selected}>{allow_blank_label}</option>')
     for option in options:
         selected = " selected" if option == current else ""
-        html.append(f'<option value="{escape(option)}"{selected}>{escape(option or allow_blank_label)}</option>')
+        html.append(
+            f'<option value="{escape(option)}"{selected}>{escape(option or allow_blank_label)}</option>')
     return "".join(html)
 
 
@@ -453,7 +459,7 @@ def _pretty_date(date_value: str) -> str:
         return escape(date_value)
     year, month, day = parts
     month_names = {"04": "Apr.", "05": "May", "06": "Jun."}
-    return f"{month_names.get(month, month) } {int(day)}, {year}".replace("  ", " ")
+    return f"{month_names.get(month, month)} {int(day)}, {year}".replace("  ", " ")
 
 
 def _priority_class(priority: str) -> str:

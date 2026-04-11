@@ -47,25 +47,31 @@ class SchedulingHandler(BaseHTTPRequestHandler):
 
         try:
             if parsed.path == "/":
-                body = render_page("login", {"message": params.get("message", [""])[0], "error": params.get("error", [""])[0]})
+                body = render_page("login", {"message": params.get("message", [""])[
+                                   0], "error": params.get("error", [""])[0]})
             elif parsed.path == "/ambassador/dashboard":
                 user_id = self._require_user(params, "ambassador")
-                body = render_page("ambassador_dashboard", build_ambassador_dashboard(conn, user_id))
+                body = render_page("ambassador_dashboard",
+                                   build_ambassador_dashboard(conn, user_id))
             elif parsed.path == "/ambassador/availability":
                 user_id = self._require_user(params, "ambassador")
                 view = params.get("view", ["dashboard"])[0]
-                body = render_page("availability", build_availability_page(conn, user_id, view, params.get("message", [""])[0], params.get("error", [""])[0]))
+                body = render_page("availability", build_availability_page(
+                    conn, user_id, view, params.get("message", [""])[0], params.get("error", [""])[0]))
             elif parsed.path == "/ambassador/profile":
                 user_id = self._require_user(params, "ambassador")
-                body = render_page("profile", build_profile_page(conn, user_id, params.get("message", [""])[0], params.get("error", [""])[0]))
+                body = render_page("profile", build_profile_page(
+                    conn, user_id, params.get("message", [""])[0], params.get("error", [""])[0]))
             elif parsed.path == "/admin":
                 user_id = self._require_user(params, "admin")
-                body = render_page("admin", build_admin_dashboard(conn, user_id, params.get("message", [""])[0], params.get("error", [""])[0]))
+                body = render_page("admin", build_admin_dashboard(
+                    conn, user_id, params.get("message", [""])[0], params.get("error", [""])[0]))
             else:
                 self.send_error(404, "Page not found")
                 return
         except PermissionError:
-            body = render_page("login", {"error": "Please log in with the correct role to continue.", "message": ""})
+            body = render_page("login", {
+                               "error": "Please log in with the correct role to continue.", "message": ""})
         finally:
             conn.close()
 
@@ -120,19 +126,16 @@ class SchedulingHandler(BaseHTTPRequestHandler):
 
     def _handle_login(self, conn, form: dict) -> str:
         email = form.get("email", "").strip()
-        password = form.get("password", "")
         role = form.get("role", "").strip().lower()
 
-        if not email or not password or role not in {"admin", "ambassador"}:
-            return "/?error=" + validation_message("All login fields are required.")
-        if "@" not in email or "." not in email.split("@")[-1]:
-            return "/?error=" + validation_message("Enter a valid email address.")
+        if not email:
+            return "/?error=" + validation_message("Enter an email address to continue.")
 
-        user = lookup_user(conn, email, password, role)
+        user = lookup_user(conn, email, "", role)
         if not user:
-            return "/?error=" + validation_message("Credentials or role selection did not match our records.")
+            return "/?error=" + validation_message("Unable to open a dashboard for that email address.")
 
-        if role == "admin":
+        if user["role"] == "admin":
             return f"/admin?user={user['id']}&role=admin&message=" + validation_message("Welcome back. Tour management is ready.")
         return f"/ambassador/dashboard?user={user['id']}&role=ambassador&message=" + validation_message("Welcome back. Your dashboard is up to date.")
 
@@ -189,7 +192,8 @@ class SchedulingHandler(BaseHTTPRequestHandler):
             return base + ("&message=" if ok else "&error=") + validation_message(message)
 
         if action == "assign_tour":
-            ok, message = assign_ambassador_to_tour(conn, int(form.get("tour_id", "0")), int(form.get("ambassador_id", "0")))
+            ok, message = assign_ambassador_to_tour(
+                conn, int(form.get("tour_id", "0")), int(form.get("ambassador_id", "0")))
             return base + ("&message=" if ok else "&error=") + validation_message(message)
 
         if action == "add_ambassador":
@@ -203,7 +207,8 @@ class SchedulingHandler(BaseHTTPRequestHandler):
             return base + ("&message=" if ok else "&error=") + validation_message(message)
 
         if action == "delete_ambassador":
-            ok, message = delete_ambassador(conn, int(form.get("ambassador_id", "0")))
+            ok, message = delete_ambassador(
+                conn, int(form.get("ambassador_id", "0")))
             return base + ("&message=" if ok else "&error=") + validation_message(message)
 
         if action == "publish_tours":
