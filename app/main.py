@@ -1,75 +1,61 @@
 """
-main.py - Entry point for the SystemsDevTeam4 project.
+Standard-library web entry point for the Neeley School of Business advising dashboard.
 
 Run with:
     python app/main.py
-
-What this script does:
-    1. Opens a connection to the SQLite database (data/SQLite.db).
-    2. Ensures the 'users' table exists.
-    3. Inserts two sample users (if the table is empty).
-    4. Retrieves and prints all users.
-    5. Demonstrates a single-user lookup.
 """
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
 from database import get_connection
-from queries import create_users_table, insert_user, get_all_users, get_user_by_id
-from utils import format_user, current_timestamp, print_section
+from queries import get_dashboard_payload, initialize_database
+from utils import render_dashboard_page
 
 
-def main() -> None:
-    print_section("SystemsDevTeam4 — Project Startup")
-    print(f"  Started at: {current_timestamp()}")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+HOST = "127.0.0.1"
+PORT = 8000
 
-    # ------------------------------------------------------------------
-    # 1. Open database connection
-    # ------------------------------------------------------------------
-    print_section("Connecting to database")
-    conn = get_connection()
-    print("  Connected to data/SQLite.db")
 
-    # ------------------------------------------------------------------
-    # 2. Ensure schema exists
-    # ------------------------------------------------------------------
-    create_users_table(conn)
-    print("  'users' table ready")
+class AdvisingHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urlparse(self.path)
 
-    # ------------------------------------------------------------------
-    # 3. Seed sample data (only when the table is empty)
-    # ------------------------------------------------------------------
-    print_section("Seeding sample data")
-    existing_users = get_all_users(conn)
-    if not existing_users:
-        insert_user(conn, "Alice Smith", "alice@example.com")
-        insert_user(conn, "Bob Jones",  "bob@example.com")
-        print("  Inserted 2 sample users")
-    else:
-        print(f"  Table already contains {len(existing_users)} user(s) — skipping seed")
+        if parsed.path == "/":
+            params = parse_qs(parsed.query)
+            search_term = params.get("q", [""])[0].strip()
+            status_filter = params.get("status", ["all"])[0].strip().lower() or "all"
 
-    # ------------------------------------------------------------------
-    # 4. Display all users
-    # ------------------------------------------------------------------
-    print_section("All users")
-    for user in get_all_users(conn):
-        print(" ", format_user(user))
+            conn = get_connection()
+            initialize_database(conn)
+            dashboard = get_dashboard_payload(conn, search_term, status_filter)
+            conn.close()
 
-    # ------------------------------------------------------------------
-    # 5. Look up a specific user
-    # ------------------------------------------------------------------
-    print_section("Look up user id=1")
-    user = get_user_by_id(conn, 1)
-    if user:
-        print(" ", format_user(user))
-    else:
-        print("  User not found")
+            body = render_dashboard_page(dashboard, search_term, status_filter)
+            self._send_response(body.encode("utf-8"), "text/html; charset=utf-8")
+            return
 
-    # ------------------------------------------------------------------
-    # Done
-    # ------------------------------------------------------------------
-    conn.close()
-    print_section("Done")
-    print(f"  Finished at: {current_timestamp()}\n")
+        if parsed.path == "/static/styles.css":
+            css_bytes = (STATIC_DIR / "styles.css").read_bytes()
+            self._send_response(css_bytes, "text/css; charset=utf-8")
+            return
+
+        self.send_error(404, "Page not found")
+
+    def log_message(self, format, *args):
+        return
+
+    def _send_response(self, content: bytes, content_type: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
 
 
 if __name__ == "__main__":
-    main()
+    server = HTTPServer((HOST, PORT), AdvisingHandler)
+    print(f"Neeley advising dashboard running at http://{HOST}:{PORT}")
+    server.serve_forever()

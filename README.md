@@ -1,107 +1,31 @@
 # SystemsDevTeam4
 
-A beginner-friendly Python + SQLite starter project, ready to open and run
-in [GitHub Codespaces](https://github.com/features/codespaces).
+Neeley School of Business academic advising dashboard built with Python and SQLite.
 
----
+## What the app does
+
+- Shows a student advising dashboard with a semester-by-semester major progression.
+- Lets users search courses and filter by completion status.
+- Displays requirement progress, alerts, shortcuts, and help content in one layout.
+- Seeds demo advising data automatically the first time the app runs.
 
 ## Project Structure
 
-```
-project-root/
-├── app/
-│   ├── main.py       # Entry point — run this file to start the project
-│   ├── database.py   # SQLite connection helper
-│   ├── queries.py    # Database query functions
-│   └── utils.py      # General-purpose helper functions
-├── data/
-│   └── SQLite.db     # Created automatically at runtime (not committed)
-├── requirements.txt  # Python dependencies (none needed beyond stdlib)
-├── README.md         # This file
-└── .devcontainer/
-    ├── devcontainer.json   # Codespaces / VS Code Dev Container config
-    └── Dockerfile          # Container image definition
-```
+- `app/main.py`: Standard-library web server and route handling.
+- `app/database.py`: SQLite connection helper for `data/SQLite.db`.
+- `app/queries.py`: Database schema creation, demo seed data, and dashboard queries.
+- `app/utils.py`: HTML rendering helpers for the dashboard.
+- `app/static/styles.css`: Styling for the Figma-inspired interface.
+- `data/`: Stores the SQLite database file created at runtime.
+- `requirements.txt`: Kept minimal because the project uses the Python standard library.
 
----
+## Run Locally
 
-## What Each File Does
+1. Start the app:
+   `python app/main.py`
+2. Open `http://127.0.0.1:8000` in your browser.
 
-| File | Purpose |
-|------|---------|
-| `app/main.py` | Entry point. Opens the database, seeds sample data, and prints results to stdout. |
-| `app/database.py` | Provides `get_connection()` which opens (and auto-creates) `data/SQLite.db`. |
-| `app/queries.py` | Contains reusable functions: `create_users_table`, `insert_user`, `get_all_users`, `get_user_by_id`. |
-| `app/utils.py` | Helpers: `format_user`, `current_timestamp`, `print_section`. |
-| `data/SQLite.db` | SQLite database file, created automatically the first time the project runs. |
-| `requirements.txt` | Lists pip dependencies. Only stdlib is used, so this is currently empty. |
-| `.devcontainer/devcontainer.json` | Tells Codespaces which Docker image and VS Code extensions to use. |
-| `.devcontainer/Dockerfile` | Defines the container: Python 3.12 + any system packages needed. |
+## Notes
 
----
-
-## How to Run the Project in Codespaces
-
-1. Open the repository on GitHub and click **Code → Open with Codespaces → New codespace**.
-2. Wait for the container to build (first launch only — typically 1–2 minutes).
-3. In the integrated terminal, run:
-
-```bash
-python app/main.py
-```
-
-You should see output similar to:
-
-```
-----------------------------------------
-  SystemsDevTeam4 — Project Startup
-----------------------------------------
-  Started at: 2025-01-15 09:30:00
-
-----------------------------------------
-  Connecting to database
-----------------------------------------
-  Connected to data/SQLite.db
-
-----------------------------------------
-  Seeding sample data
-----------------------------------------
-  Inserted 2 sample users
-
-----------------------------------------
-  All users
-----------------------------------------
-  [1] Alice Smith <alice@example.com>
-  [2] Bob Jones <bob@example.com>
-
-----------------------------------------
-  Look up user id=1
-----------------------------------------
-  [1] Alice Smith <alice@example.com>
-
-----------------------------------------
-  Done
-----------------------------------------
-  Finished at: 2025-01-15 09:30:00
-```
-
----
-
-## Running Locally (without Codespaces)
-
-Requires Python 3.10 or later (no extra packages needed):
-
-```bash
-python app/main.py
-```
-
----
-
-## Adding Dependencies
-
-If you add third-party packages, list them in `requirements.txt` and install
-them with:
-
-```bash
-pip install -r requirements.txt
-```
+- The current data is sample data for a Neeley advising use case.
+- The visual design is intentionally similar to a Figma dashboard layout, but the repo is now focused on a working application rather than a direct Figma export.
