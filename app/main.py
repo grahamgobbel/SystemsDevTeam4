@@ -19,6 +19,7 @@ from queries import (
     build_ambassador_dashboard,
     build_availability_page,
     build_profile_page,
+    clear_availability_slots,
     delete_ambassador,
     initialize_database,
     lookup_user,
@@ -158,6 +159,11 @@ class SchedulingHandler(BaseHTTPRequestHandler):
 
         if action == "submit_availability":
             return f"/ambassador/availability?user={user_id}&role={role}&view=dashboard&message=" + validation_message("Availability submitted successfully.")
+
+        if action == "clear_all":
+            ok, message = clear_availability_slots(conn, user_id)
+            key = "message" if ok else "error"
+            return f"/ambassador/availability?user={user_id}&role={role}&view=weekly&{key}=" + validation_message(message)
 
         return f"/ambassador/availability?user={user_id}&role={role}&view=weekly&error=" + validation_message("Unknown availability action.")
 

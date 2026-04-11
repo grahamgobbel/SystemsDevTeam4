@@ -309,6 +309,15 @@ def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, star
     return True, "Weekly slot added successfully."
 
 
+def clear_availability_slots(conn: sqlite3.Connection, user_id: int):
+    if user_id <= 0:
+        return False, "Invalid ambassador account."
+    conn.execute(
+        "DELETE FROM availability_slots WHERE user_id = ?", (user_id,))
+    conn.commit()
+    return True, "All weekly availability slots were cleared."
+
+
 def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, personality: str):
     if not major or not year:
         return False, "Major and year are required."

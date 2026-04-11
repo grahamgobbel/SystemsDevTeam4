@@ -391,9 +391,8 @@ def _availability_form(context: dict) -> str:
         <div class=\"draft-box\">{rows}</div>
         <form method=\"post\" action=\"/ambassador/availability\" class=\"footer-actions\">
             <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
-            <input type=\"hidden\" name=\"action\" value=\"submit_availability\">
-            <button class=\"secondary\" type=\"button\">Clear All</button>
-            <button class=\"green-button\" type=\"submit\">Submit Availability</button>
+                <button class=\"secondary\" type=\"submit\" name=\"action\" value=\"clear_all\">Clear All</button>
+                <button class=\"green-button\" type=\"submit\" name=\"action\" value=\"submit_availability\">Submit Availability</button>
         </form>
     </section>
     """
