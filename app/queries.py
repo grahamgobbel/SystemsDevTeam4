@@ -1,246 +1,335 @@
-"""
-Database queries and dashboard shaping for the advising tool.
+﻿"""
+Query and data shaping helpers for the TCU Ambassador Scheduling System.
 """
 
 import sqlite3
+from datetime import date
+
+
+VALID_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+VALID_PRIORITIES = ["1st Priority", "2nd Priority", "3rd Priority", "Low Priority"]
+VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
 
 
 def initialize_database(conn: sqlite3.Connection) -> None:
-    """Create tables and seed demo data the first time the app runs."""
     conn.executescript(
         """
-        CREATE TABLE IF NOT EXISTS students (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            major TEXT NOT NULL,
-            catalog_year TEXT NOT NULL,
-            advisor TEXT NOT NULL,
-            concentration TEXT NOT NULL,
-            classification TEXT NOT NULL,
-            email TEXT NOT NULL,
-            gpa REAL NOT NULL,
-            credits_completed INTEGER NOT NULL,
-            credits_required INTEGER NOT NULL
+            email TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            major TEXT,
+            minor TEXT,
+            year TEXT,
+            personality TEXT,
+            status TEXT DEFAULT 'Active',
+            ambassador_since TEXT,
+            tours_completed INTEGER DEFAULT 0,
+            total_hours INTEGER DEFAULT 0
         );
 
-        CREATE TABLE IF NOT EXISTS progression_terms (
+        CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id INTEGER NOT NULL,
-            term_label TEXT NOT NULL,
-            term_order INTEGER NOT NULL,
-            total_hours INTEGER NOT NULL,
-            focus_note TEXT NOT NULL,
-            FOREIGN KEY(student_id) REFERENCES students(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS planned_courses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            term_id INTEGER NOT NULL,
-            course_code TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
             title TEXT NOT NULL,
-            hours INTEGER NOT NULL,
-            course_status TEXT NOT NULL,
-            category TEXT NOT NULL,
-            prerequisite_note TEXT NOT NULL,
-            FOREIGN KEY(term_id) REFERENCES progression_terms(id)
+            detail TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            age_label TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
         );
 
-        CREATE TABLE IF NOT EXISTS advising_resources (
+        CREATE TABLE IF NOT EXISTS availability_slots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT NOT NULL,
-            shortcut_label TEXT NOT NULL,
-            action_text TEXT NOT NULL
+            user_id INTEGER NOT NULL,
+            day TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            submitted INTEGER DEFAULT 0,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS tours (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tour_type TEXT NOT NULL,
+            tour_date TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            location TEXT NOT NULL,
+            ambassadors_needed INTEGER NOT NULL,
+            published INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS tour_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tour_id INTEGER NOT NULL,
+            ambassador_id INTEGER NOT NULL,
+            FOREIGN KEY(tour_id) REFERENCES tours(id),
+            FOREIGN KEY(ambassador_id) REFERENCES users(id)
         );
         """
     )
     conn.commit()
 
-    student_count = conn.execute("SELECT COUNT(*) FROM students").fetchone()[0]
-    if student_count:
+    if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
         return
 
-    conn.execute(
-        """
-        INSERT INTO students (
-            name, major, catalog_year, advisor, concentration, classification,
-            email, gpa, credits_completed, credits_required
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            "Jordan Lee",
-            "BBA in Business Information Systems",
-            "2025-2026",
-            "Dr. Harper Collins",
-            "Business Analytics",
-            "Sophomore",
-            "jordan.lee@tcu.edu",
-            3.54,
-            54,
-            120,
-        ),
-    )
-    student_id = conn.execute("SELECT id FROM students LIMIT 1").fetchone()[0]
-
-    terms = [
-        ("Fall 2026", 1, 15, "Build analytics and accounting depth before upper-level capstone work."),
-        ("Spring 2027", 2, 15, "Complete operations and finance core with one guided elective."),
-        ("Fall 2027", 3, 12, "Advance toward strategic systems design and internship readiness."),
-        ("Spring 2028", 4, 12, "Finish capstone, polish portfolio, and confirm graduation clearance."),
-    ]
-    term_ids = []
-    for term in terms:
-        cursor = conn.execute(
-            """
-            INSERT INTO progression_terms (student_id, term_label, term_order, total_hours, focus_note)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (student_id, *term),
-        )
-        term_ids.append(cursor.lastrowid)
-
-    planned_courses = [
-        (term_ids[0], "ACCT 30153", "Financial Reporting", 3, "completed", "Neeley Core", "Ready to enroll"),
-        (term_ids[0], "INSC 30313", "Database Applications", 3, "in-progress", "Major Core", "Requires sophomore standing"),
-        (term_ids[0], "ECON 30223", "Business Statistics II", 3, "completed", "Analytical Foundation", "Prerequisite met"),
-        (term_ids[0], "BUSI 30123", "Professional Communication", 3, "planned", "Professional Skills", "Recommended before internship search"),
-        (term_ids[0], "UNIV 20213", "Diversity Elective", 3, "planned", "University Core", "Advisor approved options available"),
-        (term_ids[1], "FINA 30153", "Managerial Finance", 3, "planned", "Neeley Core", "Take after Accounting"),
-        (term_ids[1], "MANA 40123", "Operations Strategy", 3, "planned", "Neeley Core", "Junior-level standing required"),
-        (term_ids[1], "INSC 40533", "Business Intelligence", 3, "planned", "Major Core", "Database Applications recommended"),
-        (term_ids[1], "MARK 30153", "Marketing Concepts", 3, "planned", "Neeley Core", "No additional prerequisite"),
-        (term_ids[1], "BLAW 20213", "Legal Environment of Business", 3, "planned", "Neeley Core", "No additional prerequisite"),
-        (term_ids[2], "INSC 40970", "Internship Practicum", 3, "planned", "Experiential Learning", "Requires advisor approval"),
-        (term_ids[2], "INSC 40963", "Systems Analysis", 3, "planned", "Major Core", "Business Intelligence recommended"),
-        (term_ids[2], "MANA 30313", "Business Ethics", 3, "planned", "Professional Skills", "Junior-level standing required"),
-        (term_ids[2], "Elective", "Neeley Major Elective", 3, "planned", "Elective", "Choose from approved analytics list"),
-        (term_ids[3], "INSC 40983", "Capstone in Business Systems", 3, "planned", "Capstone", "Final-semester course"),
-        (term_ids[3], "Elective", "Advanced Business Analytics Elective", 3, "planned", "Elective", "Select with advisor"),
-        (term_ids[3], "MANA 40950", "Strategic Management", 3, "planned", "Capstone", "Senior standing required"),
-        (term_ids[3], "GEN ED", "Upper-Level Core Requirement", 3, "planned", "University Core", "Verify final core audit"),
+    users = [
+        ("Admin Dashboard", "admin@tcu.edu", "frog2026", "admin", None, None, None, None, "Active", None, 0, 0),
+        ("Ambassador User", "graham.gobbel@tcu.edu", "frog2026", "ambassador", "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
+        ("Emily Johnson", "emily.johnson@tcu.edu", "frog2026", "ambassador", "Marketing", "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
+        ("Michael Chen", "michael.chen@tcu.edu", "frog2026", "ambassador", "Finance", "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
+        ("Sarah Williams", "sarah.williams@tcu.edu", "frog2026", "ambassador", "Business Information Systems", "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
+        ("David Martinez", "david.martinez@tcu.edu", "frog2026", "ambassador", "Accounting", "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
+        ("Jessica Brown", "jessica.brown@tcu.edu", "frog2026", "ambassador", "Strategic Communication", "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
+        ("James Wilson", "james.wilson@tcu.edu", "frog2026", "ambassador", "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
     ]
     conn.executemany(
         """
-        INSERT INTO planned_courses (
-            term_id, course_code, title, hours, course_status, category, prerequisite_note
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (
+            name, email, password, role, major, minor, year, personality, status,
+            ambassador_since, tours_completed, total_hours
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        planned_courses,
+        users,
     )
 
-    resources = [
-        ("Advising Notes", "Open the latest advisor summary and semester planning notes.", "Alt + N", "Open notes"),
-        ("Registration Help", "Review holds, time tickets, and registration troubleshooting guidance.", "F1", "View help"),
-        ("Degree Audit", "See completed hours, unmet requirements, and catalog-year rules.", "Ctrl + D", "Launch audit"),
+    ambassador_id = conn.execute("SELECT id FROM users WHERE email = 'graham.gobbel@tcu.edu'").fetchone()[0]
+    notifications = [
+        (ambassador_id, "New schedule posted for next month (April)", "Please review and accept", "success", "1 hour ago"),
+        (ambassador_id, "Tour conflict with your business leadership in APSU5 dm", "Review your submitted schedule", "warning", "2 minutes ago"),
+        (ambassador_id, "There was a conflict with your business leadership", "Winter Miller requested you last Friday", "info", "1 hour ago"),
+    ]
+    conn.executemany("INSERT INTO notifications (user_id, title, detail, kind, age_label) VALUES (?, ?, ?, ?, ?)", notifications)
+
+    availability = [
+        (ambassador_id, "Monday", "10:00 AM", "12:00 PM", "1st Priority", 1),
+        (ambassador_id, "Tuesday", "01:00 PM", "03:00 PM", "2nd Priority", 1),
+        (ambassador_id, "Thursday", "09:00 AM", "11:00 AM", "1st Priority", 1),
+        (ambassador_id, "Friday", "02:00 PM", "04:00 PM", "3rd Priority", 1),
     ]
     conn.executemany(
-        """
-        INSERT INTO advising_resources (title, description, shortcut_label, action_text)
-        VALUES (?, ?, ?, ?)
-        """,
-        resources,
+        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, ?)",
+        availability,
     )
+
+    tours = [
+        ("Tour Types", "2026-04-25", "01:30 PM", "03:30 PM", "Location", 1, 1),
+        ("Freshman Orientation", "2026-04-26", "09:00 AM", "12:00 PM", "Brown-Lupton University Union", 1, 1),
+        ("Monday at TCU", "2026-04-28", "10:00 AM", "11:30 AM", "Admissions Office", 2, 0),
+        ("Transfer Student Tour", "2026-04-22", "11:00 AM", "01:00 PM", "Admissions Office", 2, 0),
+    ]
+    conn.executemany(
+        "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        tours,
+    )
+
+    assignments = [
+        (1, ambassador_id),
+        (2, ambassador_id),
+        (4, 3),
+    ]
+    conn.executemany("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", assignments)
     conn.commit()
 
 
-def get_dashboard_payload(
-    conn: sqlite3.Connection,
-    search_term: str = "",
-    status_filter: str = "all",
-) -> dict:
-    """Return all data needed to render the dashboard."""
-    student = dict(conn.execute("SELECT * FROM students LIMIT 1").fetchone())
-    terms = conn.execute(
-        """
-        SELECT id, term_label, term_order, total_hours, focus_note
-        FROM progression_terms
-        ORDER BY term_order
-        """
-    ).fetchall()
-    all_courses = conn.execute(
-        """
-        SELECT
-            planned_courses.id,
-            planned_courses.term_id,
-            planned_courses.course_code,
-            planned_courses.title,
-            planned_courses.hours,
-            planned_courses.course_status,
-            planned_courses.category,
-            planned_courses.prerequisite_note
-        FROM planned_courses
-        ORDER BY term_id, id
-        """
-    ).fetchall()
-    resources = [
+def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
+    row = conn.execute(
+        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?) AND password = ? AND role = ?",
+        (email, password, role),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
+    user = _get_user(conn, user_id, "ambassador")
+    notifications = [dict(row) for row in conn.execute("SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id", (user_id,)).fetchall()]
+    assignments = [
         dict(row)
         for row in conn.execute(
-            "SELECT title, description, shortcut_label, action_text FROM advising_resources ORDER BY id"
+            """
+            SELECT tours.id, tours.tour_type, tours.tour_date, tours.start_time, tours.end_time, tours.location,
+                   tours.ambassadors_needed,
+                   CASE WHEN tours.published = 1 THEN 'confirmed' ELSE 'pending' END AS status
+            FROM tours
+            JOIN tour_assignments ON tour_assignments.tour_id = tours.id
+            WHERE tour_assignments.ambassador_id = ?
+            ORDER BY tours.tour_date
+            """,
+            (user_id,),
         ).fetchall()
     ]
+    return {"user": user, "notifications": notifications, "assignments": assignments, "stats": {"total_tours": 12, "hours_completed": user["total_hours"], "upcoming_events": 3}}
 
-    normalized_search = search_term.lower()
-    filtered_courses = []
-    for row in all_courses:
-        course = dict(row)
-        matches_search = not normalized_search or normalized_search in (
-            f"{course['course_code']} {course['title']} {course['category']}".lower()
-        )
-        matches_status = status_filter == "all" or course["course_status"] == status_filter
-        if matches_search and matches_status:
-            filtered_courses.append(course)
 
-    courses_by_term = {}
-    for course in filtered_courses:
-        courses_by_term.setdefault(course["term_id"], []).append(course)
-
-    visible_terms = []
-    for term_row in terms:
-        term = dict(term_row)
-        term_courses = courses_by_term.get(term["id"], [])
-        term["courses"] = term_courses
-        term["visible_hours"] = sum(course["hours"] for course in term_courses)
-        term["course_count"] = len(term_courses)
-        visible_terms.append(term)
-
-    status_counts = {"completed": 0, "in-progress": 0, "planned": 0}
-    category_totals = {}
-    for row in all_courses:
-        course = dict(row)
-        status_counts[course["course_status"]] = status_counts.get(course["course_status"], 0) + 1
-        category_totals.setdefault(course["category"], {"total": 0, "done": 0})
-        category_totals[course["category"]]["total"] += course["hours"]
-        if course["course_status"] == "completed":
-            category_totals[course["category"]]["done"] += course["hours"]
-
-    requirement_summary = []
-    for category, totals in sorted(category_totals.items()):
-        progress = round((totals["done"] / totals["total"]) * 100) if totals["total"] else 0
-        requirement_summary.append(
-            {
-                "category": category,
-                "completed_hours": totals["done"],
-                "total_hours": totals["total"],
-                "progress": progress,
-            }
-        )
-
-    completion_percent = round(
-        (student["credits_completed"] / student["credits_required"]) * 100
-    )
-    alerts = [
-        "Advisor hold review recommended before Fall 2026 registration opens.",
-        "Capstone and Strategic Management should remain in the final academic year.",
-        "Search results update the plan instantly so students can isolate one requirement area.",
-    ]
-
+def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, message: str = "", error: str = "") -> dict:
+    user = _get_user(conn, user_id, "ambassador")
+    slots = [dict(row) for row in conn.execute("SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY day, start_time", (user_id,)).fetchall()]
     return {
-        "student": student,
-        "terms": visible_terms,
-        "status_counts": status_counts,
-        "requirement_summary": requirement_summary,
-        "resources": resources,
-        "completion_percent": completion_percent,
-        "alerts": alerts,
-        "result_count": len(filtered_courses),
+        "user": user,
+        "view": view if view in {"dashboard", "weekly"} else "dashboard",
+        "message": message,
+        "error": error,
+        "slots": slots,
+        "days": VALID_DAYS,
+        "priorities": VALID_PRIORITIES,
+        "time_labels": _time_labels(),
+        "week_label": "Week of April 6, 2026",
+        "slot_count": len(slots),
     }
+
+
+def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+    user = _get_user(conn, user_id, "ambassador")
+    return {
+        "user": user,
+        "message": message,
+        "error": error,
+        "majors": ["Computer Science", "Marketing", "Finance", "Accounting", "Management", "Business Information Systems", "Strategic Communication"],
+        "minors": ["", "Business", "Data Science", "Spanish", "Economics", "Psychology", "Journalism", "Music"],
+        "years": VALID_YEARS,
+        "personalities": ["ENFP", "ENFJ", "INFJ", "ENTP", "ISFP", "INTJ", "ESFJ"],
+    }
+
+
+def build_admin_dashboard(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+    user = _get_user(conn, user_id, "admin")
+    ambassadors = [dict(row) for row in conn.execute("SELECT id, name, email, total_hours, major, year FROM users WHERE role = 'ambassador' ORDER BY name").fetchall()]
+    tours = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT tours.id, tours.tour_type, tours.tour_date, tours.start_time, tours.end_time, tours.location,
+                   tours.ambassadors_needed, tours.published,
+                   COUNT(tour_assignments.id) AS assigned_count
+            FROM tours
+            LEFT JOIN tour_assignments ON tour_assignments.tour_id = tours.id
+            GROUP BY tours.id
+            ORDER BY tours.tour_date
+            """
+        ).fetchall()
+    ]
+    for tour in tours:
+        eligible = [dict(row) for row in conn.execute(
+            "SELECT id, name, email, total_hours FROM users WHERE role = 'ambassador' ORDER BY total_hours DESC, name LIMIT 3"
+        ).fetchall()]
+        tour["eligible"] = eligible
+    scheduled = len(tours)
+    assigned = sum(1 for tour in tours if tour["assigned_count"] > 0)
+    unassigned = sum(1 for tour in tours if tour["assigned_count"] == 0)
+    return {
+        "user": user,
+        "message": message,
+        "error": error,
+        "ambassadors": ambassadors,
+        "tours": tours,
+        "stats": {"total_ambassadors": len(ambassadors), "scheduled": scheduled, "assigned": assigned, "unassigned": unassigned},
+    }
+
+
+def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, start_time: str, end_time: str, priority: str):
+    if day not in VALID_DAYS:
+        return False, "Choose a valid day of the week."
+    if not start_time or not end_time or len(start_time) < 7 or len(end_time) < 7:
+        return False, "Time slots must follow the HH:MM AM/PM format."
+    if priority not in VALID_PRIORITIES:
+        return False, "Choose one of the predefined priority rankings."
+    if start_time >= end_time:
+        return False, "End time must be later than start time."
+    overlap = conn.execute(
+        "SELECT COUNT(*) FROM availability_slots WHERE user_id = ? AND day = ? AND start_time = ? AND end_time = ?",
+        (user_id, day, start_time, end_time),
+    ).fetchone()[0]
+    if overlap:
+        return False, "Duplicate weekly slots are not allowed."
+    conn.execute(
+        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, 0)",
+        (user_id, day, start_time, end_time, priority),
+    )
+    conn.commit()
+    return True, "Weekly slot added successfully."
+
+
+def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, personality: str):
+    if not major or not year:
+        return False, "Major and year are required."
+    if year not in VALID_YEARS:
+        return False, "Choose a valid undergraduate year."
+    conn.execute(
+        "UPDATE users SET major = ?, minor = ?, year = ?, personality = ? WHERE id = ?",
+        (major, minor, year, personality, user_id),
+    )
+    conn.commit()
+    return True, "Profile changes saved."
+
+
+def add_tour(conn: sqlite3.Connection, tour_type: str, tour_date: str, start_time: str, end_time: str, location: str, ambassadors_needed: int):
+    if not all([tour_type, tour_date, start_time, end_time, location]):
+        return False, "All tour fields are required."
+    if ambassadors_needed < 1 or ambassadors_needed > 10:
+        return False, "Ambassadors needed must stay within a reasonable range."
+    conn.execute(
+        "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 0)",
+        (tour_type, tour_date, start_time, end_time, location, ambassadors_needed),
+    )
+    conn.commit()
+    return True, "Tour created and ready for assignment."
+
+
+def assign_ambassador_to_tour(conn: sqlite3.Connection, tour_id: int, ambassador_id: int):
+    if tour_id <= 0 or ambassador_id <= 0:
+        return False, "Select a valid tour and ambassador."
+    exists = conn.execute(
+        "SELECT COUNT(*) FROM tour_assignments WHERE tour_id = ? AND ambassador_id = ?",
+        (tour_id, ambassador_id),
+    ).fetchone()[0]
+    if exists:
+        return False, "That ambassador is already assigned to this tour."
+    conn.execute("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", (tour_id, ambassador_id))
+    conn.commit()
+    return True, "Ambassador assigned to the tour."
+
+
+def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, year: str):
+    if not name or not email or not major or not year:
+        return False, "Name, email, major, and year are required."
+    if "@" not in email or not email.endswith(".edu"):
+        return False, "Ambassador emails must include a valid return address."
+    if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
+        return False, "Only one profile is allowed per ambassador email."
+    conn.execute(
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, 'frog2026', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
+        (name, email, major, year, str(date.today().year)),
+    )
+    conn.commit()
+    return True, "Ambassador added successfully."
+
+
+def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
+    if ambassador_id <= 0:
+        return False, "Select a valid ambassador."
+    conn.execute("DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
+    conn.execute("DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
+    conn.execute("DELETE FROM notifications WHERE user_id = ?", (ambassador_id,))
+    conn.execute("DELETE FROM users WHERE id = ? AND role = 'ambassador'", (ambassador_id,))
+    conn.commit()
+    return True, "Ambassador removed from the roster."
+
+
+def publish_tours(conn: sqlite3.Connection):
+    conn.execute("UPDATE tours SET published = 1")
+    conn.commit()
+    return True, "Tours published to ambassadors."
+
+
+def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
+    row = conn.execute("SELECT * FROM users WHERE id = ? AND role = ?", (user_id, role)).fetchone()
+    if not row:
+        raise PermissionError
+    return dict(row)
+
+
+def _time_labels() -> list[str]:
+    return ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
