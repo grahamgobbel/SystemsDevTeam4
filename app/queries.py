@@ -7,7 +7,7 @@ data shaping for the scheduling application.
 """
 
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 
 VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
@@ -600,9 +600,22 @@ def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, m
         "days": VALID_DAYS,
         "priorities": VALID_PRIORITIES,
         "time_labels": _time_labels(),
-        "week_label": "Week of April 6, 2026",
+        "week_label": _current_week_label(),
         "slot_count": len(slots),
     }
+
+
+def _current_week_label() -> str:
+    """Build a week label anchored to the current week's Monday.
+
+    Inputs:
+        None.
+    Outputs:
+        A label like "Week of April 14, 2026".
+    """
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    return f"Week of {monday.strftime('%B')} {monday.day}, {monday.year}"
 
 
 def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
