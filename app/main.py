@@ -1,5 +1,9 @@
 ﻿"""
-TCU Ambassador Scheduling System web server.
+Application Title: TCU Ambassador Scheduling System
+Date: 2026-04-14
+Authors: SystemsDevTeam4
+Purpose: Run the HTTP server that serves the scheduling application and
+routes form submissions to the business-logic helpers.
 
 Run with:
     python app/main.py
@@ -35,7 +39,23 @@ PORT = 8000
 
 
 class SchedulingHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for the scheduling application.
+
+    Inputs:
+        HTTP requests from the browser, including path, query parameters, and
+        form body data.
+    Outputs:
+        HTML pages for GET requests and redirect responses for POST requests.
+    """
+
     def do_GET(self):
+        """Handle GET requests and render the requested page.
+
+        Inputs:
+            The current request path and query parameters.
+        Outputs:
+            Writes an HTML or static-file response to the client.
+        """
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
 
@@ -79,6 +99,13 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         send_html(self, body)
 
     def do_POST(self):
+        """Handle POST requests from the application forms.
+
+        Inputs:
+            The current request path and submitted form fields.
+        Outputs:
+            Writes a redirect response after processing the action.
+        """
         parsed = urlparse(self.path)
         form = self._read_form()
 
@@ -103,9 +130,24 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         redirect_response(self, redirect)
 
     def log_message(self, format, *args):
+        """Suppress default server logging.
+
+        Inputs:
+            Logging format string and arguments from the base handler.
+        Outputs:
+            None.
+        """
         return
 
     def _send_static(self, filename: str, content_type: str) -> None:
+        """Write a static asset to the response body.
+
+        Inputs:
+            filename: File name inside the app/static directory.
+            content_type: MIME type for the response.
+        Outputs:
+            Sends the file bytes to the browser.
+        """
         file_bytes = (STATIC_DIR / filename).read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", content_type)
@@ -114,11 +156,26 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         self.wfile.write(file_bytes)
 
     def _read_form(self) -> dict:
+        """Parse URL-encoded POST data into a dictionary.
+
+        Inputs:
+            The request body and Content-Length header.
+        Outputs:
+            A mapping of submitted field names to their first value.
+        """
         length = int(self.headers.get("Content-Length", 0))
         raw_data = self.rfile.read(length).decode("utf-8")
         return {key: values[0] for key, values in parse_qs(raw_data).items()}
 
     def _require_user(self, params: dict, role: str) -> int:
+        """Validate that the request includes the expected user context.
+
+        Inputs:
+            params: Parsed query-string values.
+            role: Expected role for the page being viewed.
+        Outputs:
+            The validated user id.
+        """
         user_id = int(params.get("user", ["0"])[0])
         expected = params.get("role", [role])[0]
         if user_id <= 0 or expected != role:
@@ -126,6 +183,14 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         return user_id
 
     def _handle_login(self, conn, form: dict) -> str:
+        """Authenticate a user and build the redirect target.
+
+        Inputs:
+            conn: Open database connection.
+            form: Submitted login fields.
+        Outputs:
+            A redirect URL for the matching dashboard or an error page.
+        """
         email = form.get("email", "").strip()
         role = form.get("role", "").strip().lower()
 
@@ -141,6 +206,14 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         return f"/ambassador/dashboard?user={user['id']}&role=ambassador&message=" + validation_message("Welcome back. Your dashboard is up to date.")
 
     def _handle_availability(self, conn, form: dict) -> str:
+        """Process ambassador availability actions and build a redirect URL.
+
+        Inputs:
+            conn: Open database connection.
+            form: Submitted availability fields.
+        Outputs:
+            A redirect URL with success or error feedback.
+        """
         user_id = int(form.get("user", "0"))
         action = form.get("action", "")
         role = "ambassador"
@@ -168,6 +241,14 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         return f"/ambassador/availability?user={user_id}&role={role}&view=weekly&error=" + validation_message("Unknown availability action.")
 
     def _handle_profile(self, conn, form: dict) -> str:
+        """Process ambassador profile updates and build a redirect URL.
+
+        Inputs:
+            conn: Open database connection.
+            form: Submitted profile fields.
+        Outputs:
+            A redirect URL with feedback for the profile page.
+        """
         user_id = int(form.get("user", "0"))
         ok, message = update_profile(
             conn,
@@ -181,6 +262,14 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         return f"/ambassador/profile?user={user_id}&role=ambassador&{key}=" + validation_message(message)
 
     def _handle_admin(self, conn, form: dict) -> str:
+        """Process admin actions and build a redirect URL.
+
+        Inputs:
+            conn: Open database connection.
+            form: Submitted admin form fields.
+        Outputs:
+            A redirect URL with success or error feedback.
+        """
         user_id = int(form.get("user", "0"))
         action = form.get("action", "")
         base = f"/admin?user={user_id}&role=admin"
@@ -225,7 +314,13 @@ class SchedulingHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    """Start the HTTP server for the scheduling application."""
+    """Start the HTTP server for the scheduling application.
+
+    Inputs:
+        None.
+    Outputs:
+        Runs the server until it is stopped.
+    """
     server = HTTPServer((HOST, PORT), SchedulingHandler)
     print(f"TCU Ambassador Scheduling System running at http://{HOST}:{PORT}")
     server.serve_forever()

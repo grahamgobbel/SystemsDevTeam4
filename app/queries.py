@@ -1,5 +1,9 @@
 ﻿"""
-Query and data shaping helpers for the TCU Ambassador Scheduling System.
+Application Title: TCU Ambassador Scheduling System
+Date: 2026-04-14
+Authors: SystemsDevTeam4
+Purpose: Provide database setup, query helpers, validation, and dashboard
+data shaping for the scheduling application.
 """
 
 import sqlite3
@@ -138,6 +142,13 @@ MINOR_OPTIONS = [
 
 
 def initialize_database(conn: sqlite3.Connection) -> None:
+    """Create the database schema and seed required demo data.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Creates tables and inserts starter data when needed.
+    """
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -270,6 +281,16 @@ def initialize_database(conn: sqlite3.Connection) -> None:
 
 
 def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
+    """Find or create a user record based on email and role.
+
+    Inputs:
+        conn: Open SQLite connection.
+        email: User-provided email address.
+        password: Unused placeholder kept for interface compatibility.
+        role: Requested account role.
+    Outputs:
+        A dictionary with user details, or None when email is empty.
+    """
     normalized_email = email.strip()
     if not normalized_email:
         return None
@@ -313,6 +334,15 @@ def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
 
 
 def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
+    """Build the dashboard data for an ambassador.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+    Outputs:
+        Dictionary containing the user record, assignments, notifications, and
+        summary stats.
+    """
     user = _get_user(conn, user_id, "ambassador")
     notifications = [dict(row) for row in conn.execute(
         "SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id", (user_id,)).fetchall()]
@@ -336,6 +366,17 @@ def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
 
 
 def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, message: str = "", error: str = "") -> dict:
+    """Build the data needed by the availability views.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        view: Requested subview name.
+        message: Success feedback text.
+        error: Error feedback text.
+    Outputs:
+        Dictionary containing slots, labels, and view state.
+    """
     user = _get_user(conn, user_id, "ambassador")
     slots = [dict(row) for row in conn.execute(
         "SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY day, start_time", (user_id,)).fetchall()]
@@ -354,6 +395,16 @@ def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, m
 
 
 def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+    """Build the data needed by the ambassador profile page.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        message: Success feedback text.
+        error: Error feedback text.
+    Outputs:
+        Dictionary containing profile options and account information.
+    """
     user = _get_user(conn, user_id, "ambassador")
     tours_completed = conn.execute(
         "SELECT COUNT(*) FROM tour_assignments WHERE ambassador_id = ?",
@@ -372,6 +423,16 @@ def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = ""
 
 
 def build_admin_dashboard(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+    """Build the data needed by the admin dashboard.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Admin account id.
+        message: Success feedback text.
+        error: Error feedback text.
+    Outputs:
+        Dictionary containing ambassadors, tours, and summary stats.
+    """
     user = _get_user(conn, user_id, "admin")
     ambassadors = [dict(row) for row in conn.execute(
         "SELECT id, name, email, total_hours, major, year FROM users WHERE role = 'ambassador' ORDER BY name").fetchall()]
@@ -408,6 +469,18 @@ def build_admin_dashboard(conn: sqlite3.Connection, user_id: int, message: str =
 
 
 def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, start_time: str, end_time: str, priority: str):
+    """Add one availability slot for an ambassador.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        day: Weekday name.
+        start_time: Slot start time.
+        end_time: Slot end time.
+        priority: Priority ranking string.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if day not in VALID_DAYS:
         return False, "Choose a valid day of the week."
     if not start_time or not end_time or len(start_time) < 7 or len(end_time) < 7:
@@ -436,6 +509,14 @@ def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, star
 
 
 def clear_availability_slots(conn: sqlite3.Connection, user_id: int):
+    """Delete all availability slots for one ambassador.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if user_id <= 0:
         return False, "Invalid ambassador account."
     conn.execute(
@@ -445,6 +526,18 @@ def clear_availability_slots(conn: sqlite3.Connection, user_id: int):
 
 
 def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, personality: str):
+    """Update an ambassador profile.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        major: Selected major.
+        minor: Selected minor.
+        year: Undergraduate year.
+        personality: Personality type.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if not major or not year:
         return False, "Major and year are required."
     if year not in VALID_YEARS:
@@ -458,6 +551,19 @@ def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: st
 
 
 def add_tour(conn: sqlite3.Connection, tour_type: str, tour_date: str, start_time: str, end_time: str, location: str, ambassadors_needed: int):
+    """Insert a new tour record.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tour_type: Tour label.
+        tour_date: Tour date string.
+        start_time: Tour start time.
+        end_time: Tour end time.
+        location: Tour location.
+        ambassadors_needed: Required ambassador count.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if not all([tour_type, tour_date, start_time, end_time, location]):
         return False, "All tour fields are required."
     if ambassadors_needed < 1 or ambassadors_needed > 10:
@@ -471,6 +577,15 @@ def add_tour(conn: sqlite3.Connection, tour_type: str, tour_date: str, start_tim
 
 
 def assign_ambassador_to_tour(conn: sqlite3.Connection, tour_id: int, ambassador_id: int):
+    """Assign one ambassador to one tour.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tour_id: Tour record id.
+        ambassador_id: Ambassador user id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if tour_id <= 0 or ambassador_id <= 0:
         return False, "Select a valid tour and ambassador."
     exists = conn.execute(
@@ -486,6 +601,17 @@ def assign_ambassador_to_tour(conn: sqlite3.Connection, tour_id: int, ambassador
 
 
 def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, year: str):
+    """Create a new ambassador account.
+
+    Inputs:
+        conn: Open SQLite connection.
+        name: Display name.
+        email: Ambassador email address.
+        major: Selected major.
+        year: Undergraduate year.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if not name or not email or not major or not year:
         return False, "Name, email, major, and year are required."
     if "@" not in email or not email.endswith(".edu"):
@@ -501,6 +627,14 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
 
 
 def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
+    """Delete an ambassador and related records.
+
+    Inputs:
+        conn: Open SQLite connection.
+        ambassador_id: Ambassador user id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if ambassador_id <= 0:
         return False, "Select a valid ambassador."
     conn.execute(
@@ -516,12 +650,28 @@ def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
 
 
 def publish_tours(conn: sqlite3.Connection):
+    """Mark all tours as published.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     conn.execute("UPDATE tours SET published = 1")
     conn.commit()
     return True, "Tours published to ambassadors."
 
 
 def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
+    """Load one user row for the requested role.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: User record id.
+        role: Expected role string.
+    Outputs:
+        User dictionary.
+    """
     row = conn.execute(
         "SELECT * FROM users WHERE id = ? AND role = ?", (user_id, role)).fetchone()
     if not row:
@@ -530,10 +680,24 @@ def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
 
 
 def _time_labels() -> list[str]:
+    """Return the display labels used in the weekly availability grid.
+
+    Inputs:
+        None.
+    Outputs:
+        Ordered list of time labels.
+    """
     return ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
 
 
 def _ambassador_stats(assignments: list[dict]) -> dict:
+    """Summarize ambassador assignment data.
+
+    Inputs:
+        assignments: Assignment records for one ambassador.
+    Outputs:
+        Dictionary with totals, hours completed, and upcoming events.
+    """
     today = date.today()
     total_tours = len(assignments)
     hours_completed = 0.0
@@ -552,6 +716,14 @@ def _ambassador_stats(assignments: list[dict]) -> dict:
 
 
 def _tour_duration_hours(start_time: str, end_time: str) -> float:
+    """Calculate tour duration in hours.
+
+    Inputs:
+        start_time: Start time string.
+        end_time: End time string.
+    Outputs:
+        Duration in hours as a float.
+    """
     if not start_time or not end_time:
         return 0.0
     start = datetime.strptime(start_time, "%I:%M %p")
