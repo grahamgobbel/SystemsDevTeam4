@@ -3,7 +3,7 @@ Query and data shaping helpers for the TCU Ambassador Scheduling System.
 """
 
 import sqlite3
-from datetime import date
+from datetime import date, datetime
 
 
 VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
@@ -11,6 +11,130 @@ VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
 VALID_PRIORITIES = ["1st Priority",
                     "2nd Priority", "3rd Priority", "Low Priority"]
 VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
+MAJOR_GROUPS = [
+    ("Neeley School of Business", [
+        "Accounting",
+        "Business Information Systems",
+        "Entrepreneurial Management",
+        "Finance",
+        "Marketing",
+        "Supply Chain Management",
+        "Business Analytics (BizTech)",
+        "Management",
+    ]),
+    ("AddRan College of Liberal Arts", [
+        "African American & Africana Studies",
+        "Anthropology",
+        "Asian Studies",
+        "Comparative Race & Ethnic Studies",
+        "Economics",
+        "English",
+        "Writing & Rhetoric",
+        "Creative Writing",
+        "Geography",
+        "History",
+        "International Relations",
+        "Modern Language Studies",
+        "Philosophy",
+        "Political Science",
+        "Religion",
+        "Sociology",
+        "Spanish & Hispanic Studies",
+        "Women & Gender Studies",
+    ]),
+    ("College of Science & Engineering", [
+        "Biology",
+        "Biochemistry",
+        "Chemistry",
+        "Computer Science",
+        "Data Science / Digital Culture & Data Analytics",
+        "Engineering",
+        "Environmental Science & Sustainability",
+        "Environmental Earth Resources",
+        "Geology",
+        "Mathematics",
+        "Physics",
+        "Actuarial Science",
+        "Astronomy",
+    ]),
+    ("Bob Schieffer College of Communication", [
+        "Communication Studies",
+        "Journalism",
+        "Strategic Communication (PR/Advertising)",
+        "Film, Television & Digital Media",
+    ]),
+    ("College of Fine Arts", [
+        "Art Education",
+        "Art History",
+        "Studio Art",
+        "Graphic Design",
+        "Interior Design",
+        "Fashion Merchandising",
+        "Theatre",
+        "Dance",
+        "Music (multiple concentrations)",
+        "Ballet / Contemporary Dance",
+        "Arts Leadership & Entrepreneurship",
+    ]),
+    ("Harris College of Nursing & Health Sciences", [
+        "Nursing",
+        "Kinesiology",
+        "Nutritional Sciences",
+        "Athletic Training",
+        "Speech-Language Pathology (Communication Disorders)",
+    ]),
+    ("College of Education", [
+        "Early Childhood Education",
+        "Middle School Education (various tracks)",
+        "Secondary Education (various subjects)",
+        "Youth Advocacy & Educational Studies",
+        "Educational Studies (double major option)",
+    ]),
+    ("Other / Specialized", [
+        "Ranch Management",
+        "Aerospace Studies",
+        "Military Science",
+    ]),
+]
+MINOR_OPTIONS = [
+    "Accounting",
+    "Finance",
+    "Marketing",
+    "Entrepreneurship",
+    "Business Analytics",
+    "Economics",
+    "Political Science",
+    "Philosophy",
+    "Religion",
+    "Sociology",
+    "History",
+    "English",
+    "Creative Writing",
+    "Computer Science",
+    "Mathematics",
+    "Data Analytics",
+    "Environmental Science",
+    "Biology",
+    "Digital Culture & Data Analytics",
+    "Comparative Race & Ethnic Studies",
+    "African American & Africana Studies",
+    "Latinx Studies",
+    "Women & Gender Studies",
+    "Studio Art",
+    "Design",
+    "Theatre",
+    "Dance",
+    "Music",
+    "Educational Studies",
+    "Youth Advocacy",
+    "Nursing",
+    "Kinesiology",
+    "Nutritional Sciences",
+    "Athletic Training",
+    "Speech-Language Pathology",
+    "Aerospace Studies",
+    "Military Science",
+]
 
 
 def initialize_database(conn: sqlite3.Connection) -> None:
@@ -71,9 +195,31 @@ def initialize_database(conn: sqlite3.Connection) -> None:
             FOREIGN KEY(tour_id) REFERENCES tours(id),
             FOREIGN KEY(ambassador_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
         """
     )
     conn.commit()
+
+    if not conn.execute("SELECT value FROM app_meta WHERE key = 'demo_seed_cleaned'").fetchone():
+        ambassador_row = conn.execute(
+            "SELECT id FROM users WHERE lower(email) = lower('graham.gobbel@tcu.edu')"
+        ).fetchone()
+        if ambassador_row:
+            ambassador_id = ambassador_row[0]
+            conn.execute(
+                "DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
+            conn.execute(
+                "DELETE FROM notifications WHERE user_id = ?", (ambassador_id,))
+            conn.execute(
+                "DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
+        conn.execute(
+            "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('demo_seed_cleaned', '1')"
+        )
+        conn.commit()
 
     if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
         return
@@ -106,30 +252,6 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         users,
     )
 
-    ambassador_id = conn.execute(
-        "SELECT id FROM users WHERE email = 'graham.gobbel@tcu.edu'").fetchone()[0]
-    notifications = [
-        (ambassador_id, "New schedule posted for next month (April)",
-         "Please review and accept", "success", "1 hour ago"),
-        (ambassador_id, "Tour conflict with your business leadership in APSU5 dm",
-         "Review your submitted schedule", "warning", "2 minutes ago"),
-        (ambassador_id, "There was a conflict with your business leadership",
-         "Winter Miller requested you last Friday", "info", "1 hour ago"),
-    ]
-    conn.executemany(
-        "INSERT INTO notifications (user_id, title, detail, kind, age_label) VALUES (?, ?, ?, ?, ?)", notifications)
-
-    availability = [
-        (ambassador_id, "Monday", "10:00 AM", "12:00 PM", "1st Priority", 1),
-        (ambassador_id, "Tuesday", "01:00 PM", "03:00 PM", "2nd Priority", 1),
-        (ambassador_id, "Thursday", "09:00 AM", "11:00 AM", "1st Priority", 1),
-        (ambassador_id, "Friday", "02:00 PM", "04:00 PM", "3rd Priority", 1),
-    ]
-    conn.executemany(
-        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, ?)",
-        availability,
-    )
-
     tours = [
         ("Tour Types", "2026-04-25", "01:30 PM", "03:30 PM", "Location", 1, 1),
         ("Freshman Orientation", "2026-04-26", "09:00 AM",
@@ -144,13 +266,6 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         tours,
     )
 
-    assignments = [
-        (1, ambassador_id),
-        (2, ambassador_id),
-        (4, 3),
-    ]
-    conn.executemany(
-        "INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)", assignments)
     conn.commit()
 
 
@@ -216,7 +331,8 @@ def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
             (user_id,),
         ).fetchall()
     ]
-    return {"user": user, "notifications": notifications, "assignments": assignments, "stats": {"total_tours": 12, "hours_completed": user["total_hours"], "upcoming_events": 3}}
+    stats = _ambassador_stats(assignments)
+    return {"user": user, "notifications": notifications, "assignments": assignments, "stats": stats}
 
 
 def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, message: str = "", error: str = "") -> dict:
@@ -239,14 +355,19 @@ def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, m
 
 def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
     user = _get_user(conn, user_id, "ambassador")
+    tours_completed = conn.execute(
+        "SELECT COUNT(*) FROM tour_assignments WHERE ambassador_id = ?",
+        (user_id,),
+    ).fetchone()[0]
     return {
         "user": user,
         "message": message,
         "error": error,
-        "majors": ["Computer Science", "Marketing", "Finance", "Accounting", "Management", "Business Information Systems", "Strategic Communication"],
-        "minors": ["", "Business", "Data Science", "Spanish", "Economics", "Psychology", "Journalism", "Music"],
+        "major_groups": MAJOR_GROUPS,
+        "minors": MINOR_OPTIONS,
         "years": VALID_YEARS,
-        "personalities": ["ENFP", "ENFJ", "INFJ", "ENTP", "ISFP", "INTJ", "ESFJ"],
+        "personalities": ["Introvert", "Ambivert", "Extrovert"],
+        "tours_completed": tours_completed,
     }
 
 
@@ -293,7 +414,12 @@ def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, star
         return False, "Time slots must follow the HH:MM AM/PM format."
     if priority not in VALID_PRIORITIES:
         return False, "Choose one of the predefined priority rankings."
-    if start_time >= end_time:
+    try:
+        start_dt = datetime.strptime(start_time, "%I:%M %p")
+        end_dt = datetime.strptime(end_time, "%I:%M %p")
+    except ValueError:
+        return False, "Time slots must follow the HH:MM AM/PM format."
+    if start_dt >= end_dt:
         return False, "End time must be later than start time."
     overlap = conn.execute(
         "SELECT COUNT(*) FROM availability_slots WHERE user_id = ? AND day = ? AND start_time = ? AND end_time = ?",
@@ -405,3 +531,30 @@ def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
 
 def _time_labels() -> list[str]:
     return ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
+
+
+def _ambassador_stats(assignments: list[dict]) -> dict:
+    today = date.today()
+    total_tours = len(assignments)
+    hours_completed = 0.0
+    upcoming_events = 0
+
+    for assignment in assignments:
+        hours_completed += _tour_duration_hours(assignment.get(
+            "start_time", ""), assignment.get("end_time", ""))
+        tour_date = assignment.get("tour_date", "")
+        if tour_date and tour_date >= today.isoformat():
+            upcoming_events += 1
+
+    hours_value = int(hours_completed) if hours_completed.is_integer(
+    ) else round(hours_completed, 1)
+    return {"total_tours": total_tours, "hours_completed": hours_value, "upcoming_events": upcoming_events}
+
+
+def _tour_duration_hours(start_time: str, end_time: str) -> float:
+    if not start_time or not end_time:
+        return 0.0
+    start = datetime.strptime(start_time, "%I:%M %p")
+    end = datetime.strptime(end_time, "%I:%M %p")
+    duration = end - start
+    return max(duration.total_seconds() / 3600, 0.0)

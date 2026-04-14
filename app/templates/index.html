@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Neeley Advising Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
+
 <body>
     <div class="app-shell">
         <aside class="sidebar">
@@ -26,7 +28,8 @@
 
             <section class="help-card">
                 <h2>Quick Help</h2>
-                <p>Use search to find courses or requirement areas. Filter by status to isolate completed, in-progress, or planned work.</p>
+                <p>Use search to find courses or requirement areas. Filter by status to isolate completed, in-progress,
+                    or planned work.</p>
                 <p class="small-text">Context help is always shown in the same panel for easier navigation.</p>
             </section>
         </aside>
@@ -36,7 +39,8 @@
                 <div>
                     <p class="eyebrow">Academic Advising Tool</p>
                     <h2>{{ dashboard.student.name }}</h2>
-                    <p class="subtitle">{{ dashboard.student.major }} | {{ dashboard.student.classification }} | Advisor: {{ dashboard.student.advisor }}</p>
+                    <p class="subtitle">{{ dashboard.student.major }} | {{ dashboard.student.classification }} |
+                        Advisor: {{ dashboard.student.advisor }}</p>
                 </div>
                 <div class="toolbar" aria-label="Command menu">
                     <button type="button">File</button>
@@ -50,28 +54,23 @@
                 <form class="filters-grid" method="get">
                     <label class="field">
                         <span>Search Courses</span>
-                        <input
-                            type="search"
-                            name="q"
-                            placeholder="Example: INSC 30313 or analytics"
-                            value="{{ search_term }}"
-                        >
+                        <input type="search" name="q" placeholder="Example: INSC 30313 or analytics">
                     </label>
 
                     <label class="field">
                         <span>Status Filter</span>
                         <select name="status">
-                            <option value="all" {% if status_filter == "all" %}selected{% endif %}>All statuses</option>
-                            <option value="completed" {% if status_filter == "completed" %}selected{% endif %}>Completed</option>
-                            <option value="in-progress" {% if status_filter == "in-progress" %}selected{% endif %}>In progress</option>
-                            <option value="planned" {% if status_filter == "planned" %}selected{% endif %}>Planned</option>
+                            <option value="" selected>Select status</option>
+                            <option value="completed">Completed</option>
+                            <option value="in-progress">In progress</option>
+                            <option value="planned">Planned</option>
                         </select>
                     </label>
 
                     <label class="field checkbox-field">
                         <span>Input Guidance</span>
                         <div class="checkbox-row">
-                            <input id="next-term" type="checkbox" checked>
+                            <input id="next-term" type="checkbox">
                             <label for="next-term">Show advisor-recommended next term first</label>
                         </div>
                     </label>
@@ -81,7 +80,8 @@
                         <a class="secondary-button" href="{{ url_for('index') }}">Clear</a>
                     </div>
                 </form>
-                <p class="hint-text">Displayed courses: {{ dashboard.result_count }}. Disabled commands stay visible so users can see what options exist.</p>
+                <p class="hint-text">Displayed courses: {{ dashboard.result_count }}. Disabled commands stay visible so
+                    users can see what options exist.</p>
             </section>
 
             <section class="summary-grid">
@@ -129,41 +129,44 @@
                             <p class="eyebrow">Semester-by-Semester Plan</p>
                             <h3>Recommended major progression</h3>
                         </div>
-                        <p class="small-text">Each card groups related advising actions into a familiar semester workflow.</p>
+                        <p class="small-text">Each card groups related advising actions into a familiar semester
+                            workflow.</p>
                     </div>
 
                     <div class="term-grid">
                         {% for term in dashboard.terms %}
-                            <article class="term-card">
-                                <div class="term-header">
-                                    <div>
-                                        <h4>{{ term.term_label }}</h4>
-                                        <p>{{ term.focus_note }}</p>
-                                    </div>
-                                    <span class="term-hours">{{ term.visible_hours or term.total_hours }} hrs</span>
+                        <article class="term-card">
+                            <div class="term-header">
+                                <div>
+                                    <h4>{{ term.term_label }}</h4>
+                                    <p>{{ term.focus_note }}</p>
                                 </div>
+                                <span class="term-hours">{{ term.visible_hours or term.total_hours }} hrs</span>
+                            </div>
 
-                                {% if term.courses %}
-                                    <ul class="course-list">
-                                        {% for course in term.courses %}
-                                            <li class="course-item">
-                                                <div>
-                                                    <p class="course-code">{{ course.course_code }}</p>
-                                                    <h5>{{ course.title }}</h5>
-                                                    <p class="course-meta">{{ course.category }} | {{ course.hours }} credit hours</p>
-                                                    <p class="course-note">{{ course.prerequisite_note }}</p>
-                                                </div>
-                                                <span class="pill {{ course.course_status|replace('-', '') }}">{{ course.course_status }}</span>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <div class="empty-state">
-                                        <p>No courses match the current search or filter.</p>
-                                        <p class="small-text">Try clearing filters to view the full recommended term.</p>
+                            {% if term.courses %}
+                            <ul class="course-list">
+                                {% for course in term.courses %}
+                                <li class="course-item">
+                                    <div>
+                                        <p class="course-code">{{ course.course_code }}</p>
+                                        <h5>{{ course.title }}</h5>
+                                        <p class="course-meta">{{ course.category }} | {{ course.hours }} credit hours
+                                        </p>
+                                        <p class="course-note">{{ course.prerequisite_note }}</p>
                                     </div>
-                                {% endif %}
-                            </article>
+                                    <span class="pill {{ course.course_status|replace('-', '') }}">{{
+                                        course.course_status }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <div class="empty-state">
+                                <p>No courses match the current search or filter.</p>
+                                <p class="small-text">Try clearing filters to view the full recommended term.</p>
+                            </div>
+                            {% endif %}
+                        </article>
                         {% endfor %}
                     </div>
                 </section>
@@ -174,15 +177,15 @@
                         <h3>Progress by area</h3>
                         <ul class="requirements-list">
                             {% for item in dashboard.requirement_summary %}
-                                <li>
-                                    <div class="requirement-row">
-                                        <span>{{ item.category }}</span>
-                                        <span>{{ item.completed_hours }}/{{ item.total_hours }} hrs</span>
-                                    </div>
-                                    <div class="progress-track slim">
-                                        <span style="width: {{ item.progress }}%;"></span>
-                                    </div>
-                                </li>
+                            <li>
+                                <div class="requirement-row">
+                                    <span>{{ item.category }}</span>
+                                    <span>{{ item.completed_hours }}/{{ item.total_hours }} hrs</span>
+                                </div>
+                                <div class="progress-track slim">
+                                    <span style="width: {{ item.progress }}%;"></span>
+                                </div>
+                            </li>
                             {% endfor %}
                         </ul>
                     </section>
@@ -192,7 +195,7 @@
                         <h3>What needs attention</h3>
                         <ul class="alerts-list">
                             {% for alert in dashboard.alerts %}
-                                <li>{{ alert }}</li>
+                            <li>{{ alert }}</li>
                             {% endfor %}
                         </ul>
                     </section>
@@ -202,16 +205,16 @@
                         <h3>User help</h3>
                         <ul class="resource-list">
                             {% for resource in dashboard.resources %}
-                                <li>
-                                    <div>
-                                        <strong>{{ resource.title }}</strong>
-                                        <p>{{ resource.description }}</p>
-                                    </div>
-                                    <div class="resource-actions">
-                                        <span>{{ resource.shortcut_label }}</span>
-                                        <button type="button">{{ resource.action_text }}</button>
-                                    </div>
-                                </li>
+                            <li>
+                                <div>
+                                    <strong>{{ resource.title }}</strong>
+                                    <p>{{ resource.description }}</p>
+                                </div>
+                                <div class="resource-actions">
+                                    <span>{{ resource.shortcut_label }}</span>
+                                    <button type="button">{{ resource.action_text }}</button>
+                                </div>
+                            </li>
                             {% endfor %}
                         </ul>
                     </section>
@@ -220,4 +223,5 @@
         </main>
     </div>
 </body>
+
 </html>

@@ -2,6 +2,7 @@
 Rendering helpers for the TCU Ambassador Scheduling System.
 """
 
+from datetime import datetime, timedelta
 from html import escape
 from urllib.parse import quote_plus
 
@@ -63,7 +64,7 @@ def _render_login(context: dict) -> str:
 
             <label>Select Role <span class=\"required\">*</span></label>
             <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"admin\" required> <span>Admin</span></label>
-            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"ambassador\" required checked> <span>Ambassador</span></label>
+            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"ambassador\" required> <span>Ambassador</span></label>
 
             <button class=\"primary large\" type=\"submit\">Login</button>
         </form>
@@ -153,12 +154,8 @@ def _render_availability(context: dict) -> str:
 
 def _render_profile(context: dict) -> str:
     user = context["user"]
-    major_options = _options(context["majors"], user.get("major", ""))
-    minor_options = _options(context["minors"], user.get(
-        "minor", ""), allow_blank_label="Select your minor")
-    year_options = _options(context["years"], user.get("year", ""))
-    personality_options = _options(
-        context["personalities"], user.get("personality", ""))
+    major_picker = _major_picker(context["major_groups"])
+    minor_picker = _minor_picker(context["minors"])
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -177,7 +174,7 @@ def _render_profile(context: dict) -> str:
                 <div class=\"profile-stats\">
                     <div><span>Status</span><strong>{escape(user['status'])}</strong></div>
                     <div><span>Ambassador Since</span><strong>{escape(user.get('ambassador_since') or '')}</strong></div>
-                    <div><span>Tours Completed</span><strong>{user['tours_completed']}</strong></div>
+                    <div><span>Tours Completed</span><strong>{context['tours_completed']}</strong></div>
                 </div>
             </div>
             <form class=\"settings-card\" method=\"post\" action=\"/ambassador/profile\">
@@ -185,13 +182,13 @@ def _render_profile(context: dict) -> str:
                 <h3>Academic Information</h3>
                 <p>Fields marked with <span class=\"required\">*</span> are required</p>
                 <label>Major <span class=\"required\">*</span></label>
-                <select name=\"major\">{major_options}</select>
+                {major_picker}
                 <label>Minor (Optional)</label>
-                <select name=\"minor\">{minor_options}</select>
+                {minor_picker}
                 <label>Year <span class=\"required\">*</span></label>
-                <select name=\"year\">{year_options}</select>
+                <select name=\"year\">{_options(context["years"], "", allow_blank_label="Select a year")}</select>
                 <label>Personality Type</label>
-                <select name=\"personality\">{personality_options}</select>
+                <select name=\"personality\">{_options(context["personalities"], "")}</select>
                 <div class=\"form-actions right\"><button class=\"primary\" type=\"submit\">Save Changes</button></div>
             </form>
         </div>
@@ -251,7 +248,7 @@ def _render_admin(context: dict) -> str:
                 <input name=\"name\" placeholder=\"Full Name\">
                 <input name=\"email\" placeholder=\"name@tcu.edu\">
                 <input name=\"major\" placeholder=\"Major\">
-                <select name=\"year\"><option value=\"\">Year</option><option>Freshman</option><option>Sophomore</option><option>Junior</option><option>Senior</option></select>
+                <select name=\"year\">{_options(["Freshman", "Sophomore", "Junior", "Senior"], "", allow_blank_label="Year")}</select>
                 <button class=\"primary\" type=\"submit\">Add Ambassador</button>
             </form>
             <div class=\"stack\">{ambassadors_markup}</div>
@@ -284,6 +281,55 @@ def _shell(user: dict, active: str, content: str, role: str) -> str:
         <aside class=\"left-rail\">{side}</aside>
         <main class=\"page-shell\">{content}</main>
     </div>
+    <script>
+        document.addEventListener('click', function (event) {{
+            const dropdown = event.target.closest('[data-dropdown]');
+
+            document.querySelectorAll('[data-dropdown]').forEach(function (item) {{
+                if (item !== dropdown) {{
+                    item.dataset.open = 'false';
+                    const trigger = item.querySelector('[data-dropdown-trigger]');
+                    if (trigger) {{
+                        trigger.setAttribute('aria-expanded', 'false');
+                    }}
+                }}
+            }});
+
+            if (!dropdown) {{
+                return;
+            }}
+
+            const trigger = event.target.closest('[data-dropdown-trigger]');
+            if (trigger) {{
+                const isOpen = dropdown.dataset.open === 'true';
+                dropdown.dataset.open = isOpen ? 'false' : 'true';
+                trigger.setAttribute('aria-expanded', String(!isOpen));
+                event.preventDefault();
+                return;
+            }}
+
+            const option = event.target.closest('[data-dropdown-option]');
+            if (!option) {{
+                return;
+            }}
+
+            const value = option.dataset.value || '';
+            const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+            const label = dropdown.querySelector('[data-dropdown-label]');
+            const dropdownTrigger = dropdown.querySelector('[data-dropdown-trigger]');
+            if (hiddenInput) {{
+                hiddenInput.value = value;
+            }}
+            if (label) {{
+                label.textContent = value || option.textContent || '';
+            }}
+            if (dropdownTrigger) {{
+                dropdownTrigger.setAttribute('aria-expanded', 'false');
+            }}
+            dropdown.dataset.open = 'false';
+            event.preventDefault();
+        }});
+    </script>
 </body>
 </html>"""
 
@@ -340,14 +386,14 @@ def _availability_grid(context: dict) -> str:
     for time_label in context["time_labels"]:
         grid_cells.append(f'<div class="time-col">{time_label}</div>')
         for day in context["days"]:
-            slot = next((item for item in slots if item["day"] == day and item["start_time"].startswith(
-                time_label.split(":")[0])), None)
+            slot = _slot_for_day_and_time(slots, day, time_label)
             label = escape(slot["priority"]) if slot else ""
             cls = _priority_class(slot["priority"]) if slot else "not-set"
             grid_cells.append(
                 f'<div class="calendar-cell {cls}">{label}</div>')
     headings = "".join([f'<div class="day-head"><strong>{day[:3]}</strong><span>{num}</span></div>' for day, num in zip(
         context["days"], ["4/6", "4/7", "4/8", "4/9", "4/10", "4/11", "4/12"])])
+    footer = "" if slots else '<div class="empty-footer"><div class="calendar-icon">¦</div><p>No availability set yet</p><span>Use the Weekly Availability tab to set your schedule</span></div>'
     return f"""
     <section class=\"dashboard-panel\">
         <div class=\"panel-header\"><div><h3>Availability Dashboard</h3><p>Visual overview of your availability across weeks</p></div><div class=\"calendar-controls\"><span class=\"ghost-chip\">Today</span></div></div>
@@ -360,7 +406,7 @@ def _availability_grid(context: dict) -> str:
             <span class=\"legend-item unset\">Not Set</span>
         </div>
         <div class=\"calendar-grid\"><div class=\"time-head\">Time</div>{headings}{''.join(grid_cells)}</div>
-        <div class=\"empty-footer\"><div class=\"calendar-icon\">¦</div><p>No availability set yet</p><span>Use the Weekly Availability tab to set your schedule</span></div>
+        {footer}
     </section>
     """
 
@@ -378,16 +424,28 @@ def _availability_form(context: dict) -> str:
     <section class=\"dashboard-panel\">
         <div class=\"section-head\">
             <div><h3>Set Weekly Schedule</h3><p>Define your regular availability that repeats every week</p></div>
-            <form class=\"slot-form\" method=\"post\" action=\"/ambassador/availability\">
+        </div>
+        <form class=\"slot-form availability-form\" method=\"post\" action=\"/ambassador/availability\">
                 <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
                 <input type=\"hidden\" name=\"action\" value=\"add_slot\">
-                <select name=\"day\">{day_opts}</select>
-                <select name=\"start_time\">{time_opts}</select>
-                <select name=\"end_time\">{time_opts}</select>
-                <select name=\"priority\">{pri_opts}</select>
+                <div class=\"slot-field\">
+                    <label for=\"avail-day\">Day</label>
+                    <select id=\"avail-day\" name=\"day\">{day_opts}</select>
+                </div>
+                <div class=\"slot-field\">
+                    <label for=\"avail-start\">Start Time</label>
+                    <select id=\"avail-start\" name=\"start_time\">{time_opts}</select>
+                </div>
+                <div class=\"slot-field\">
+                    <label for=\"avail-end\">End Time</label>
+                    <select id=\"avail-end\" name=\"end_time\">{time_opts}</select>
+                </div>
+                <div class=\"slot-field\">
+                    <label for=\"avail-priority\">Priority</label>
+                    <select id=\"avail-priority\" name=\"priority\">{pri_opts}</select>
+                </div>
                 <button class=\"primary\" type=\"submit\">Add Weekly Slot</button>
-            </form>
-        </div>
+        </form>
         <div class=\"draft-box\">{rows}</div>
         <form method=\"post\" action=\"/ambassador/availability\" class=\"footer-actions\">
             <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
@@ -452,13 +510,72 @@ def _options(options: list[str], current: str, allow_blank_label: str = "Select"
     return "".join(html)
 
 
-def _pretty_date(date_value: str) -> str:
-    parts = date_value.split("-")
-    if len(parts) != 3:
-        return escape(date_value)
-    year, month, day = parts
-    month_names = {"04": "Apr.", "05": "May", "06": "Jun."}
-    return f"{month_names.get(month, month)} {int(day)}, {year}".replace("  ", " ")
+def _major_picker(groups: list[tuple[str, list[str]]]) -> str:
+    items = []
+    for group_label, options in groups:
+        option_buttons = "".join(
+            f'<button type="button" class="dropdown-option" data-dropdown-option data-value="{escape(option)}">{escape(option)}</button>'
+            for option in options
+        )
+        items.append(
+            f'''
+            <div class="dropdown-group">
+                <div class="dropdown-group-label">{escape(group_label)}</div>
+                <div class="dropdown-group-options">{option_buttons}</div>
+            </div>
+            '''
+        )
+    return _dropdown_shell("major", "Select a major", "major", "Select a major", "".join(items))
+
+
+def _minor_picker(options: list[str]) -> str:
+    option_buttons = "".join(
+        f'<button type="button" class="dropdown-option" data-dropdown-option data-value="{escape(option)}">{escape(option)}</button>'
+        for option in options
+    )
+    return _dropdown_shell("minor", "Select your minor", "minor", "Select your minor", option_buttons)
+
+
+def _dropdown_shell(name: str, placeholder: str, input_name: str, button_label: str, menu_html: str) -> str:
+    return f'''
+    <div class="dropdown-field" data-dropdown>
+        <input type="hidden" name="{input_name}" value="">
+        <button class="dropdown-trigger" type="button" data-dropdown-trigger aria-expanded="false">
+            <span data-dropdown-label>{escape(button_label)}</span>
+            <span class="dropdown-caret">▾</span>
+        </button>
+        <div class="dropdown-menu" role="listbox" aria-label="{escape(placeholder)}">
+            <button type="button" class="dropdown-option placeholder" data-dropdown-option data-value="">{escape(placeholder)}</button>
+            {menu_html}
+        </div>
+    </div>
+    '''
+
+
+def _slot_for_day_and_time(slots: list[dict], day: str, time_label: str):
+    hour_start = datetime.strptime(time_label, "%I:%M %p")
+    hour_end = hour_start + timedelta(hours=1)
+    matching_slots = [slot for slot in slots if slot["day"] ==
+                      day and _slot_overlaps_hour(slot, hour_start, hour_end)]
+    if not matching_slots:
+        return None
+    return min(matching_slots, key=_priority_rank)
+
+
+def _slot_overlaps_hour(slot: dict, hour_start: datetime, hour_end: datetime) -> bool:
+    slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
+    slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
+    return slot_start < hour_end and slot_end > hour_start
+
+
+def _priority_rank(slot: dict) -> int:
+    ranks = {
+        "1st Priority": 0,
+        "2nd Priority": 1,
+        "3rd Priority": 2,
+        "Low Priority": 3,
+    }
+    return ranks.get(slot.get("priority", ""), 99)
 
 
 def _priority_class(priority: str) -> str:
