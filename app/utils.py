@@ -267,63 +267,44 @@ def _render_admin(context: dict) -> str:
         HTML for the admin dashboard.
     """
     user = context["user"]
-    filters = context["filters"]
-    status_options = "".join([
-        f'<option value="{value}"{" selected" if value == filters["tour_status"] else ""}>{value.title()}</option>'
-        for value in filters["tour_status_options"]
-    ])
+    stat = context["stats"]
+    tours_markup = "".join(_tour_card(
+        item, user['id']) for item in context["tours"])
+    ambassadors_markup = "".join(_ambassador_row(
+        item, user['id']) for item in context["ambassadors"])
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
             <div>
                 <h1>Admin Dashboard</h1>
-                <p>Manage tours, ambassador records, and workflow actions</p>
+                <p>Create tours and assign ambassadors to time slots</p>
             </div>
         </div>
         {_flash(context.get('message', ''), 'success')}
         {_flash(context.get('error', ''), 'error')}
         <div class=\"metric-grid\">
-            {_metric_card('Total Ambassadors', 'Pending', 'purple')}
-            {_metric_card('Scheduled Tours', 'Pending', 'blue')}
-            {_metric_card('Assigned Tours', 'Pending', 'green')}
-            {_metric_card('Unassigned Tours', 'Pending', 'gold')}
+            {_metric_card('Total Ambassadors', stat['total_ambassadors'], 'purple')}
+            {_metric_card('Scheduled Tours', stat['scheduled'], 'blue')}
+            {_metric_card('Assigned Tours', stat['assigned'], 'green')}
+            {_metric_card('Unassigned Tours', stat['unassigned'], 'gold')}
         </div>
-        <div class=\"info-panel\"><strong>Tour Management</strong><p>Administrative tour details will appear here after you provide the tour list.</p></div>
+        <div class=\"info-panel\"><strong>Tour Management</strong><p>Create available tour slots and assign ambassadors based on availability.</p></div>
         <div class=\"admin-section\">
             <div class=\"section-head\">
-                <div><h3>Search and Filter</h3><p>Search ambassadors and narrow the current record set</p></div>
-            </div>
-            <form method=\"get\" action=\"/admin\" class=\"admin-form-grid\">
-                <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
-                <input type=\"hidden\" name=\"role\" value=\"admin\">
-                <input name=\"search\" value=\"{escape(filters['search'])}\" placeholder=\"Search ambassadors by name, email, or major\">
-                <select name=\"tour_status\">{status_options}</select>
-                <button class=\"primary\" type=\"submit\">Apply Filters</button>
-                <a class=\"secondary\" href=\"/admin?user={user['id']}&role=admin\">Clear</a>
-            </form>
-        </div>
-        <div class=\"admin-section\">
-            <div class=\"section-head\">
-                <div><h3>Create & Assign Tours</h3><p>Set up tour records and assign ambassadors</p></div>
+                <div><h3>Create & Assign Tours</h3><p>Set up tour time slots and assign ambassadors</p></div>
             </div>
             <form method=\"post\" action=\"/admin\" class=\"admin-form-grid\">
                 <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
                 <input type=\"hidden\" name=\"action\" value=\"add_tour\">
-                <input name=\"tour_type\" placeholder=\"Tour title\">
-                <input name=\"tour_date\" placeholder=\"Tour date\">
-                <input name=\"start_time\" placeholder=\"Start time\">
-                <input name=\"end_time\" placeholder=\"End time\">
-                <input name=\"location\" placeholder=\"Location\">
-                <input name=\"ambassadors_needed\" placeholder=\"Needed\">
+                <input name=\"tour_type\" placeholder=\"Tour Type\">
+                <input name=\"tour_date\" placeholder=\"2026-04-22\">
+                <input name=\"start_time\" placeholder=\"11:00 AM\">
+                <input name=\"end_time\" placeholder=\"01:00 PM\">
+                <input name=\"location\" placeholder=\"Admissions Office\">
+                <input name=\"ambassadors_needed\" placeholder=\"2\">
                 <button class=\"primary\" type=\"submit\">Add Tour</button>
             </form>
-            <div class=\"stack\">
-                <article class=\"tour-card\">
-                    <div class=\"tour-card-head\"><div><h4>Tour title</h4><p>Tour details will appear here once the tour list is provided.</p></div><span class=\"status-chip draft\">Pending</span></div>
-                    <p class=\"muted\">Tour timing, location, and staffing details are waiting on the provided tour list.</p>
-                    <div class=\"candidate-stack\"></div>
-                </article>
-            </div>
+            <div class=\"stack\">{tours_markup}</div>
         </div>
         <div class=\"admin-section\">
             <div class=\"section-head\">
@@ -338,26 +319,13 @@ def _render_admin(context: dict) -> str:
                 <select name=\"year\">{_options(["Freshman", "Sophomore", "Junior", "Senior"], "", allow_blank_label="Year")}</select>
                 <button class=\"primary\" type=\"submit\">Add Ambassador</button>
             </form>
-            <div class=\"stack\">
-                <article class=\"ambassador-row\">
-                    <div class=\"avatar-small\">A</div>
-                    <div class=\"ambassador-copy\"><strong>Ambassador Name</strong><p>ambassador@tcu.edu</p></div>
-                    <span class=\"hour-chip\">Pending</span>
-                    <button class=\"icon-button\" type=\"button\">Delete</button>
-                </article>
-            </div>
+            <div class=\"stack\">{ambassadors_markup}</div>
             <form method=\"post\" action=\"/admin\" class=\"footer-actions\">
                 <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
                 <input type=\"hidden\" name=\"action\" value=\"publish_tours\">
                 <button class=\"secondary\" type=\"button\">Clear All</button>
                 <button class=\"green-button\" type=\"submit\">Publish Tours</button>
             </form>
-        </div>
-        <div class=\"admin-section\">
-            <div class=\"section-head\">
-                <div><h3>Ambassador Workload Report</h3><p>Report details will appear after the tour list is supplied</p></div>
-            </div>
-            <div class=\"info-panel\"><strong>Placeholder report</strong><p>The workload report is intentionally left blank until you provide the tour list.</p></div>
         </div>
     </section>
     """

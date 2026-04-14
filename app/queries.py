@@ -638,8 +638,6 @@ def build_admin_dashboard(
     user_id: int,
     message: str = "",
     error: str = "",
-    ambassador_search: str = "",
-    tour_status: str = "all",
 ) -> dict:
     """Build the data needed by the admin dashboard.
 
@@ -648,30 +646,15 @@ def build_admin_dashboard(
         user_id: Admin account id.
         message: Success feedback text.
         error: Error feedback text.
-        ambassador_search: Search text for ambassadors.
-        tour_status: Filter value for tours.
     Outputs:
         Dictionary containing ambassadors, tours, and summary stats.
     """
     user = _get_user(conn, user_id, "admin")
-
-    search_term = ambassador_search.strip()
-    ambassador_filters = ["role = 'ambassador'"]
-    ambassador_params: list[str] = []
-    if search_term:
-        wildcard = f"%{search_term}%"
-        ambassador_filters.append(
-            "(name LIKE ? OR email LIKE ? OR major LIKE ?)")
-        ambassador_params.extend([wildcard, wildcard, wildcard])
-
-    ambassador_query = (
-        "SELECT id, name, email, total_hours, major, year "
-        "FROM users WHERE " +
-        " AND ".join(ambassador_filters) + " ORDER BY name"
-    )
     ambassadors = [
         dict(row)
-        for row in conn.execute(ambassador_query, tuple(ambassador_params)).fetchall()
+        for row in conn.execute(
+            "SELECT id, name, email, total_hours, major, year FROM users WHERE role = 'ambassador' ORDER BY name"
+        ).fetchall()
     ]
 
     tours = [
@@ -689,47 +672,11 @@ def build_admin_dashboard(
         ).fetchall()
     ]
 
-    normalized_tour_status = tour_status if tour_status in {
-        "all", "published", "draft", "assigned", "unassigned"
-    } else "all"
-
-    if normalized_tour_status == "published":
-        tours = [tour for tour in tours if tour["published"] == 1]
-    elif normalized_tour_status == "draft":
-        tours = [tour for tour in tours if tour["published"] == 0]
-    elif normalized_tour_status == "assigned":
-        tours = [tour for tour in tours if tour["assigned_count"] > 0]
-    elif normalized_tour_status == "unassigned":
-        tours = [tour for tour in tours if tour["assigned_count"] == 0]
-
     for tour in tours:
         eligible = [dict(row) for row in conn.execute(
             "SELECT id, name, email, total_hours FROM users WHERE role = 'ambassador' ORDER BY total_hours DESC, name LIMIT 3"
         ).fetchall()]
         tour["eligible"] = eligible
-
-    report_query = (
-        "SELECT users.id, users.name, users.email, users.major, users.year, users.total_hours, "
-        "COUNT(tour_assignments.id) AS assigned_tours "
-        "FROM users "
-        "LEFT JOIN tour_assignments ON tour_assignments.ambassador_id = users.id "
-        "WHERE role = 'ambassador'"
-    )
-    report_params: list[str] = []
-    if search_term:
-        wildcard = f"%{search_term}%"
-        report_query += " AND (users.name LIKE ? OR users.email LIKE ? OR users.major LIKE ?)"
-        report_params.extend([wildcard, wildcard, wildcard])
-    report_query += " GROUP BY users.id ORDER BY assigned_tours DESC, users.total_hours DESC, users.name"
-    report_rows = [
-        dict(row)
-        for row in conn.execute(report_query, tuple(report_params)).fetchall()
-    ]
-
-    assignment_totals = [row["assigned_tours"] for row in report_rows]
-    avg_assigned = round(sum(assignment_totals) /
-                         len(assignment_totals), 2) if assignment_totals else 0
-    max_assigned = max(assignment_totals) if assignment_totals else 0
 
     scheduled = len(tours)
     assigned = sum(1 for tour in tours if tour["assigned_count"] > 0)
@@ -740,18 +687,6 @@ def build_admin_dashboard(
         "error": error,
         "ambassadors": ambassadors,
         "tours": tours,
-        "filters": {
-            "search": search_term,
-            "tour_status": normalized_tour_status,
-            "tour_status_options": ["all", "published", "draft", "assigned", "unassigned"],
-        },
-        "report": {
-            "generated_on": date.today().isoformat(),
-            "rows": report_rows,
-            "total_rows": len(report_rows),
-            "avg_assigned": avg_assigned,
-            "max_assigned": max_assigned,
-        },
         "stats": {"total_ambassadors": len(ambassadors), "scheduled": scheduled, "assigned": assigned, "unassigned": unassigned},
     }
 

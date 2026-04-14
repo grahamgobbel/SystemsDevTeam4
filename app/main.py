@@ -90,8 +90,6 @@ class SchedulingHandler(BaseHTTPRequestHandler):
                     user_id,
                     params.get("message", [""])[0],
                     params.get("error", [""])[0],
-                    params.get("search", [""])[0],
-                    params.get("tour_status", ["all"])[0],
                 ))
             else:
                 self.send_error(404, "Page not found")
