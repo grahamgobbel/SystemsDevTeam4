@@ -10,6 +10,8 @@ A role-based scheduling application for TCU Admissions ambassadors and administr
 - Profile management for academic information and personality traits.
 - Admin dashboard for tours, assignments, and ambassador roster management.
 
+The application supports a connected workflow for adding records, filtering and searching data, updating ambassador information, and generating a workload report from the same admin and ambassador pages.
+
 ## Architecture
 
 The codebase is split into small modules instead of one large file:

@@ -872,6 +872,39 @@ select {
     margin-top: 24px;
 }
 
+.report-table-wrap {
+    margin-top: 18px;
+    overflow-x: auto;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    background: white;
+}
+
+.report-table th,
+.report-table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+.report-table th {
+    font-size: 0.86rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: #f7f8fc;
+}
+
+.report-table tbody tr:hover {
+    background: #f9fbff;
+}
+
 .section-head h3,
 .panel-header h3 {
     margin: 0;

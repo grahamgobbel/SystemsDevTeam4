@@ -86,7 +86,13 @@ class SchedulingHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/admin":
                 user_id = self._require_user(params, "admin")
                 body = render_page("admin", build_admin_dashboard(
-                    conn, user_id, params.get("message", [""])[0], params.get("error", [""])[0]))
+                    conn,
+                    user_id,
+                    params.get("message", [""])[0],
+                    params.get("error", [""])[0],
+                    params.get("search", [""])[0],
+                    params.get("tour_status", ["all"])[0],
+                ))
             else:
                 self.send_error(404, "Page not found")
                 return

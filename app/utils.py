@@ -1,5 +1,9 @@
 ﻿"""
-Rendering helpers for the TCU Ambassador Scheduling System.
+Application Title: TCU Ambassador Scheduling System
+Date: 2026-04-14
+Authors: SystemsDevTeam4
+Purpose: Render application pages and reusable HTML fragments for the
+scheduling interface.
 """
 
 from datetime import datetime, timedelta
@@ -8,16 +12,39 @@ from urllib.parse import quote_plus
 
 
 def validation_message(message: str) -> str:
+    """Encode a feedback message for use in a query string.
+
+    Inputs:
+        message: Human-readable status text.
+    Outputs:
+        URL-encoded string safe for redirects.
+    """
     return quote_plus(message)
 
 
 def redirect_response(handler, location: str) -> None:
+    """Send a redirect response.
+
+    Inputs:
+        handler: HTTP request handler.
+        location: Redirect target URL.
+    Outputs:
+        HTTP 303 response written to the client.
+    """
     handler.send_response(303)
     handler.send_header("Location", location)
     handler.end_headers()
 
 
 def send_html(handler, body: str) -> None:
+    """Send an HTML response body.
+
+    Inputs:
+        handler: HTTP request handler.
+        body: HTML content to send.
+    Outputs:
+        UTF-8 encoded HTML response.
+    """
     content = body.encode("utf-8")
     handler.send_response(200)
     handler.send_header("Content-Type", "text/html; charset=utf-8")
@@ -27,6 +54,14 @@ def send_html(handler, body: str) -> None:
 
 
 def render_page(page: str, context: dict) -> str:
+    """Render the requested application page.
+
+    Inputs:
+        page: Logical page name.
+        context: Data dictionary for the page.
+    Outputs:
+        Full HTML page as a string.
+    """
     if page == "login":
         return _render_login(context)
     if page == "ambassador_dashboard":
@@ -41,6 +76,13 @@ def render_page(page: str, context: dict) -> str:
 
 
 def _render_login(context: dict) -> str:
+    """Render the login page.
+
+    Inputs:
+        context: Login page state including message and error text.
+    Outputs:
+        HTML for the login screen.
+    """
     error = _flash(context.get("error", ""), "error")
     message = _flash(context.get("message", ""), "success")
     return f"""<!doctype html>
@@ -75,6 +117,13 @@ def _render_login(context: dict) -> str:
 
 
 def _render_ambassador_dashboard(context: dict) -> str:
+    """Render the ambassador dashboard.
+
+    Inputs:
+        context: Dashboard data from the query layer.
+    Outputs:
+        HTML for the ambassador dashboard.
+    """
     user = context["user"]
     assignments = "".join(_assignment_card(item)
                           for item in context["assignments"])
@@ -116,6 +165,13 @@ def _render_ambassador_dashboard(context: dict) -> str:
 
 
 def _render_availability(context: dict) -> str:
+    """Render the ambassador availability page.
+
+    Inputs:
+        context: Availability page data from the query layer.
+    Outputs:
+        HTML for the availability page.
+    """
     user = context["user"]
     view = context["view"]
     tabs = f"""
@@ -153,6 +209,13 @@ def _render_availability(context: dict) -> str:
 
 
 def _render_profile(context: dict) -> str:
+    """Render the ambassador profile page.
+
+    Inputs:
+        context: Profile page data from the query layer.
+    Outputs:
+        HTML for the profile page.
+    """
     user = context["user"]
     major_picker = _major_picker(context["major_groups"])
     minor_picker = _minor_picker(context["minors"])
@@ -196,12 +259,29 @@ def _render_profile(context: dict) -> str:
 
 
 def _render_admin(context: dict) -> str:
+    """Render the admin dashboard.
+
+    Inputs:
+        context: Admin dashboard data from the query layer.
+    Outputs:
+        HTML for the admin dashboard.
+    """
     user = context["user"]
     stat = context["stats"]
+    filters = context["filters"]
+    report = context["report"]
     tours_markup = "".join(_tour_card(
         item, user['id']) for item in context["tours"])
     ambassadors_markup = "".join(_ambassador_row(
         item, user['id']) for item in context["ambassadors"])
+    status_options = "".join([
+        f'<option value="{value}"{" selected" if value == filters["tour_status"] else ""}>{value.title()}</option>'
+        for value in filters["tour_status_options"]
+    ])
+    report_rows = "".join([
+        f'<tr><td>{escape(row["name"])}</td><td>{escape(row["email"])}</td><td>{escape(row.get("major") or "-")}</td><td>{escape(row.get("year") or "-")}</td><td>{row["assigned_tours"]}</td><td>{row["total_hours"]}</td></tr>'
+        for row in report["rows"]
+    ]) or '<tr><td colspan="6">No ambassadors matched the selected filters.</td></tr>'
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -219,6 +299,19 @@ def _render_admin(context: dict) -> str:
             {_metric_card('Unassigned Tours', stat['unassigned'], 'gold')}
         </div>
         <div class=\"info-panel\"><strong>Tour Management</strong><p>Create available tour slots and assign ambassadors based on their availability. The system shows you which ambassadors are available for each time slot.</p></div>
+        <div class=\"admin-section\">
+            <div class=\"section-head\">
+                <div><h3>Search and Filter</h3><p>Search ambassadors and narrow tour cards before managing records</p></div>
+            </div>
+            <form method=\"get\" action=\"/admin\" class=\"admin-form-grid\">
+                <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
+                <input type=\"hidden\" name=\"role\" value=\"admin\">
+                <input name=\"search\" value=\"{escape(filters['search'])}\" placeholder=\"Search ambassadors by name, email, or major\">
+                <select name=\"tour_status\">{status_options}</select>
+                <button class=\"primary\" type=\"submit\">Apply Filters</button>
+                <a class=\"secondary\" href=\"/admin?user={user['id']}&role=admin\">Clear</a>
+            </form>
+        </div>
         <div class=\"admin-section\">
             <div class=\"section-head\">
                 <div><h3>Create & Assign Tours</h3><p>Set up tour time slots and assign ambassadors</p></div>
@@ -257,12 +350,40 @@ def _render_admin(context: dict) -> str:
                 <button class=\"green-button\" type=\"submit\">Publish Tours</button>
             </form>
         </div>
+        <div class=\"admin-section\">
+            <div class=\"section-head\">
+                <div><h3>Ambassador Workload Report</h3><p>Generated on {escape(report['generated_on'])} from current records</p></div>
+            </div>
+            <div class=\"metric-grid\">
+                {_metric_card('Rows', report['total_rows'], 'blue')}
+                {_metric_card('Avg Assigned Tours', report['avg_assigned'], 'purple')}
+                {_metric_card('Max Assigned Tours', report['max_assigned'], 'green')}
+            </div>
+            <div class=\"report-table-wrap\">
+                <table class=\"report-table\">
+                    <thead>
+                        <tr><th>Name</th><th>Email</th><th>Major</th><th>Year</th><th>Assigned Tours</th><th>Total Hours</th></tr>
+                    </thead>
+                    <tbody>{report_rows}</tbody>
+                </table>
+            </div>
+        </div>
     </section>
     """
     return _shell(user, "admin", body, role="admin")
 
 
 def _shell(user: dict, active: str, content: str, role: str) -> str:
+    """Wrap page content in the shared application shell.
+
+    Inputs:
+        user: Current user record.
+        active: Active navigation key.
+        content: Main page HTML.
+        role: User role string.
+    Outputs:
+        Complete HTML document.
+    """
     nav = _top_nav(user, active, role)
     side = _side_nav(user, active, role)
     return f"""<!doctype html>
@@ -333,6 +454,15 @@ def _shell(user: dict, active: str, content: str, role: str) -> str:
 
 
 def _top_nav(user: dict, active: str, role: str) -> str:
+    """Build the top navigation bar.
+
+    Inputs:
+        user: Current user record.
+        active: Active navigation key.
+        role: User role string.
+    Outputs:
+        HTML for the top navigation.
+    """
     if role == "admin":
         center = f'<a class="top-link {"active" if active == "admin" else ""}" href="/admin?user={user["id"]}&role=admin">Admin Dashboard</a>'
     else:
@@ -345,6 +475,15 @@ def _top_nav(user: dict, active: str, role: str) -> str:
 
 
 def _side_nav(user: dict, active: str, role: str) -> str:
+    """Build the side navigation links.
+
+    Inputs:
+        user: Current user record.
+        active: Active navigation key.
+        role: User role string.
+    Outputs:
+        HTML for the side navigation.
+    """
     items = []
     if role == "admin":
         items.append(
@@ -363,7 +502,28 @@ def _side_nav(user: dict, active: str, role: str) -> str:
     return f'<p class="quick-title">Quick Actions</p>{links}'
 
 
+def _pretty_date(date_text: str) -> str:
+    """Format a YYYY-MM-DD date for display.
+
+    Inputs:
+        date_text: ISO-style date string.
+    Outputs:
+        Human-readable date string, or the original text if parsing fails.
+    """
+    try:
+        return datetime.strptime(date_text, "%Y-%m-%d").strftime("%b %d, %Y")
+    except ValueError:
+        return date_text
+
+
 def _assignment_card(item: dict) -> str:
+    """Render one assignment card.
+
+    Inputs:
+        item: Assignment record.
+    Outputs:
+        HTML for the assignment card.
+    """
     status_class = "confirmed" if item["status"] == "confirmed" else "pending"
     return f"""
     <article class=\"assignment-card\">
@@ -375,10 +535,24 @@ def _assignment_card(item: dict) -> str:
 
 
 def _notification_card(item: dict) -> str:
+    """Render one notification card.
+
+    Inputs:
+        item: Notification record.
+    Outputs:
+        HTML for the notification card.
+    """
     return f'<article class="notice-card {escape(item["kind"])}"><strong>{escape(item["title"])}</strong><p>{escape(item["detail"])}</p><span>{escape(item["age_label"])}</span></article>'
 
 
 def _availability_grid(context: dict) -> str:
+    """Render the availability dashboard grid.
+
+    Inputs:
+        context: Availability page data.
+    Outputs:
+        HTML for the grid view.
+    """
     slots = context["slots"]
     grid_cells = []
     for time_label in context["time_labels"]:
@@ -410,6 +584,13 @@ def _availability_grid(context: dict) -> str:
 
 
 def _availability_form(context: dict) -> str:
+    """Render the weekly availability form.
+
+    Inputs:
+        context: Availability page data.
+    Outputs:
+        HTML for the form view.
+    """
     user = context["user"]
     rows = "".join([
         f'<div class="slot-row"><span>{escape(item["day"])}</span><span>{escape(item["start_time"])} - {escape(item["end_time"])}</span><span>{escape(item["priority"])}</span></div>'
@@ -455,6 +636,14 @@ def _availability_form(context: dict) -> str:
 
 
 def _tour_card(tour: dict, admin_user_id: int) -> str:
+    """Render one tour management card.
+
+    Inputs:
+        tour: Tour record.
+        admin_user_id: Admin user id.
+    Outputs:
+        HTML for the tour card.
+    """
     assign_forms = "".join([
         f'''<form method="post" action="/admin" class="inline-form"><input type="hidden" name="user" value="{admin_user_id}"><input type="hidden" name="action" value="assign_tour"><input type="hidden" name="tour_id" value="{tour['id']}"><input type="hidden" name="ambassador_id" value="{candidate['id']}"><span>{escape(candidate['name'])}</span><button class="secondary small" type="submit">Add</button></form>'''
         for candidate in tour["eligible"]
@@ -470,6 +659,14 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
 
 
 def _ambassador_row(item: dict, admin_user_id: int) -> str:
+    """Render one ambassador management row.
+
+    Inputs:
+        item: Ambassador record.
+        admin_user_id: Admin user id.
+    Outputs:
+        HTML for the ambassador row.
+    """
     initial = escape(item['name'][0].upper()) if item['name'] else 'A'
     return f"""
     <article class=\"ambassador-row\">
@@ -487,16 +684,42 @@ def _ambassador_row(item: dict, admin_user_id: int) -> str:
 
 
 def _metric_card(label: str, value: int, tone: str) -> str:
+    """Render a summary metric card.
+
+    Inputs:
+        label: Metric label.
+        value: Metric value.
+        tone: Visual style key.
+    Outputs:
+        HTML for the metric card.
+    """
     return f'<div class="metric-card {tone}"><span>{label}</span><strong>{value}</strong></div>'
 
 
 def _flash(message: str, tone: str) -> str:
+    """Render a flash message if one is present.
+
+    Inputs:
+        message: Message text.
+        tone: Visual style key.
+    Outputs:
+        HTML for the flash message, or an empty string.
+    """
     if not message:
         return ""
     return f'<div class="flash {tone}">{escape(message)}</div>'
 
 
 def _options(options: list[str], current: str, allow_blank_label: str = "Select") -> str:
+    """Build a list of HTML option elements.
+
+    Inputs:
+        options: Available option values.
+        current: Currently selected value.
+        allow_blank_label: Label for the blank option, if allowed.
+    Outputs:
+        Concatenated option HTML.
+    """
     html = []
     if allow_blank_label is not None:
         selected = " selected" if not current else ""
@@ -509,6 +732,13 @@ def _options(options: list[str], current: str, allow_blank_label: str = "Select"
 
 
 def _major_picker(groups: list[tuple[str, list[str]]]) -> str:
+    """Render the major picker dropdown.
+
+    Inputs:
+        groups: Major group labels and options.
+    Outputs:
+        HTML for the major picker.
+    """
     items = []
     for group_label, options in groups:
         option_buttons = "".join(
@@ -527,6 +757,13 @@ def _major_picker(groups: list[tuple[str, list[str]]]) -> str:
 
 
 def _minor_picker(options: list[str]) -> str:
+    """Render the minor picker dropdown.
+
+    Inputs:
+        options: Minor option values.
+    Outputs:
+        HTML for the minor picker.
+    """
     option_buttons = "".join(
         f'<button type="button" class="dropdown-option" data-dropdown-option data-value="{escape(option)}">{escape(option)}</button>'
         for option in options
@@ -535,6 +772,17 @@ def _minor_picker(options: list[str]) -> str:
 
 
 def _dropdown_shell(name: str, placeholder: str, input_name: str, button_label: str, menu_html: str) -> str:
+    """Render the shared dropdown wrapper.
+
+    Inputs:
+        name: Dropdown name key.
+        placeholder: Placeholder text.
+        input_name: Hidden input name.
+        button_label: Button label text.
+        menu_html: Inner menu HTML.
+    Outputs:
+        HTML for the dropdown wrapper.
+    """
     return f'''
     <div class="dropdown-field" data-dropdown>
         <input type="hidden" name="{input_name}" value="">
@@ -551,6 +799,15 @@ def _dropdown_shell(name: str, placeholder: str, input_name: str, button_label: 
 
 
 def _slot_for_day_and_time(slots: list[dict], day: str, time_label: str):
+    """Find the availability slot that overlaps one day/time cell.
+
+    Inputs:
+        slots: Availability slot records.
+        day: Day label.
+        time_label: Hour label.
+    Outputs:
+        Matching slot dictionary or None.
+    """
     hour_start = datetime.strptime(time_label, "%I:%M %p")
     hour_end = hour_start + timedelta(hours=1)
     matching_slots = [slot for slot in slots if slot["day"] ==
@@ -561,12 +818,28 @@ def _slot_for_day_and_time(slots: list[dict], day: str, time_label: str):
 
 
 def _slot_overlaps_hour(slot: dict, hour_start: datetime, hour_end: datetime) -> bool:
+    """Check whether a slot overlaps a one-hour interval.
+
+    Inputs:
+        slot: Availability slot record.
+        hour_start: Start of the hour interval.
+        hour_end: End of the hour interval.
+    Outputs:
+        True when the slot overlaps the interval.
+    """
     slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
     slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
     return slot_start < hour_end and slot_end > hour_start
 
 
 def _priority_rank(slot: dict) -> int:
+    """Map a slot priority to a sort order.
+
+    Inputs:
+        slot: Availability slot record.
+    Outputs:
+        Numeric rank where lower means higher priority.
+    """
     ranks = {
         "1st Priority": 0,
         "2nd Priority": 1,
@@ -577,6 +850,13 @@ def _priority_rank(slot: dict) -> int:
 
 
 def _priority_class(priority: str) -> str:
+    """Map a priority label to a CSS class.
+
+    Inputs:
+        priority: Priority label.
+    Outputs:
+        CSS class name for the priority.
+    """
     mapping = {
         "1st Priority": "first",
         "2nd Priority": "second",

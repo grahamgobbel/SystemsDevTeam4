@@ -1,8 +1,11 @@
 """
-database.py - SQLite database connection setup.
+Application Title: TCU Ambassador Scheduling System
+Date: 2026-04-14
+Authors: SystemsDevTeam4
+Purpose: Create and return SQLite connections for the scheduling application.
 
-Stores the database in the user's local temp directory so the app can write
-reliably even when the project itself lives in a synced OneDrive folder.
+The database file is stored in the user's temporary directory so the app can
+write reliably even when the project lives in a synced workspace.
 """
 
 import os
@@ -15,7 +18,13 @@ DB_PATH = os.path.join(DB_DIR, "SQLite.db")
 
 
 def get_connection() -> sqlite3.Connection:
-    """Return a SQLite connection for the advising dashboard data."""
+    """Return a SQLite connection configured for the application.
+
+    Inputs:
+        None.
+    Outputs:
+        A SQLite connection with row_factory enabled for dict-like access.
+    """
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
