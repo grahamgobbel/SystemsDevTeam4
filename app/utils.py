@@ -310,15 +310,6 @@ def _render_admin(context: dict) -> str:
             <div class=\"section-head\">
                 <div><h3>Ambassador Management</h3><p>Add, remove, and manage ambassador accounts</p></div>
             </div>
-            <form method=\"post\" action=\"/admin\" class=\"admin-form-grid\">
-                <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
-                <input type=\"hidden\" name=\"action\" value=\"add_ambassador\">
-                <input name=\"name\" placeholder=\"Full Name\">
-                <input name=\"email\" placeholder=\"name@tcu.edu\">
-                <input name=\"major\" placeholder=\"Major\">
-                <select name=\"year\">{_options(["Freshman", "Sophomore", "Junior", "Senior"], "", allow_blank_label="Year")}</select>
-                <button class=\"primary\" type=\"submit\">Add Ambassador</button>
-            </form>
             <div class=\"stack\">{ambassadors_markup}</div>
             <form method=\"post\" action=\"/admin\" class=\"footer-actions\">
                 <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">

@@ -672,11 +672,19 @@ def build_admin_dashboard(
         ).fetchall()
     ]
 
+    availability_rows = [dict(row) for row in conn.execute(
+        "SELECT user_id, day, start_time, end_time, priority FROM availability_slots WHERE submitted = 1"
+    ).fetchall()]
+    availability_by_user: dict[int, list[dict]] = {}
+    for slot in availability_rows:
+        availability_by_user.setdefault(slot["user_id"], []).append(slot)
+
     for tour in tours:
-        eligible = [dict(row) for row in conn.execute(
-            "SELECT id, name, email, total_hours FROM users WHERE role = 'ambassador' ORDER BY total_hours DESC, name LIMIT 3"
-        ).fetchall()]
-        tour["eligible"] = eligible
+        tour["eligible"] = _tour_eligible_ambassadors(
+            ambassadors,
+            availability_by_user,
+            tour,
+        )
 
     scheduled = len(tours)
     assigned = sum(1 for tour in tours if tour["assigned_count"] > 0)
@@ -689,6 +697,69 @@ def build_admin_dashboard(
         "tours": tours,
         "stats": {"total_ambassadors": len(ambassadors), "scheduled": scheduled, "assigned": assigned, "unassigned": unassigned},
     }
+
+
+def _tour_eligible_ambassadors(
+    ambassadors: list[dict],
+    availability_by_user: dict[int, list[dict]],
+    tour: dict,
+) -> list[dict]:
+    """Find ambassadors who are available for a tour.
+
+    Inputs:
+        ambassadors: Ambassador records.
+        availability_by_user: Submitted availability grouped by ambassador id.
+        tour: Tour record.
+    Outputs:
+        Ambassadors sorted by the priority of the matching time slot.
+    """
+    try:
+        tour_day = date.fromisoformat(tour["tour_date"]).strftime("%A")
+    except ValueError:
+        return []
+    try:
+        tour_start = datetime.strptime(tour["start_time"], "%I:%M %p")
+        tour_end = datetime.strptime(tour["end_time"], "%I:%M %p")
+    except ValueError:
+        return []
+
+    def priority_rank(priority: str) -> int:
+        ranks = {
+            "1st Priority": 0,
+            "2nd Priority": 1,
+            "3rd Priority": 2,
+            "Low Priority": 3,
+        }
+        return ranks.get(priority, 99)
+
+    matches: list[dict] = []
+    for ambassador in ambassadors:
+        best_slot = None
+        best_rank = 99
+        for slot in availability_by_user.get(ambassador["id"], []):
+            if slot["day"] != tour_day:
+                continue
+            try:
+                slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
+                slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
+            except ValueError:
+                continue
+            if not (slot_start < tour_end and slot_end > tour_start):
+                continue
+            rank = priority_rank(slot["priority"])
+            if rank < best_rank:
+                best_rank = rank
+                best_slot = slot
+
+        if best_slot is None:
+            continue
+
+        candidate = dict(ambassador)
+        candidate["priority_rank"] = best_rank
+        candidate["priority"] = best_slot["priority"]
+        matches.append(candidate)
+
+    return sorted(matches, key=lambda item: (item["priority_rank"], -item.get("total_hours", 0), item["name"]))
 
 
 def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, start_time: str, end_time: str, priority: str):
