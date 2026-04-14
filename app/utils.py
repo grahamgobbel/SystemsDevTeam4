@@ -172,8 +172,6 @@ def _render_profile(context: dict) -> str:
                 <h3>{escape(user['name'])}</h3>
                 <p>{escape(user['email'])}</p>
                 <div class=\"profile-stats\">
-                    <div><span>Status</span><strong>{escape(user['status'])}</strong></div>
-                    <div><span>Ambassador Since</span><strong>{escape(user.get('ambassador_since') or '')}</strong></div>
                     <div><span>Tours Completed</span><strong>{context['tours_completed']}</strong></div>
                 </div>
             </div>
