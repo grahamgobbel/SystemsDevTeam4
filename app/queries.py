@@ -15,6 +15,7 @@ VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
 VALID_PRIORITIES = ["1st Priority",
                     "2nd Priority", "3rd Priority", "Low Priority"]
 VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
+VALID_PERSONALITIES = ["Introvert", "Ambivert", "Extrovert"]
 MAJOR_GROUPS = [
     ("Neeley School of Business", [
         "Accounting",
@@ -140,6 +141,178 @@ MINOR_OPTIONS = [
     "Military Science",
 ]
 
+HARD_CODED_AMBASSADORS = [
+    ("Ava Thompson", "ava.thompson@tcu.edu",
+     "Marketing", "Spanish", "Freshman", "Ambivert"),
+    ("Liam Carter", "liam.carter@tcu.edu", "Finance",
+     "Economics", "Sophomore", "Extrovert"),
+    ("Noah Bennett", "noah.bennett@tcu.edu",
+     "Computer Science", "Mathematics", "Junior", "Introvert"),
+    ("Emma Collins", "emma.collins@tcu.edu",
+     "Accounting", "", "Senior", "Ambivert"),
+    ("Olivia Ramirez", "olivia.ramirez@tcu.edu",
+     "Strategic Communication (PR/Advertising)", "Journalism", "Freshman", "Extrovert"),
+    ("Elijah Brooks", "elijah.brooks@tcu.edu", "Management",
+     "Entrepreneurship", "Sophomore", "Ambivert"),
+    ("Sophia Reed", "sophia.reed@tcu.edu", "Business Information Systems",
+     "Data Analytics", "Junior", "Introvert"),
+    ("Mason Hayes", "mason.hayes@tcu.edu", "Supply Chain Management",
+     "Business Analytics", "Senior", "Ambivert"),
+    ("Isabella Jenkins", "isabella.jenkins@tcu.edu",
+     "Nursing", "", "Freshman", "Extrovert"),
+    ("Lucas Foster", "lucas.foster@tcu.edu", "Kinesiology",
+     "Nutritional Sciences", "Sophomore", "Ambivert"),
+    ("Mia Howard", "mia.howard@tcu.edu", "Psychology",
+     "Sociology", "Junior", "Introvert"),
+    ("Ethan Morris", "ethan.morris@tcu.edu",
+     "Economics", "Finance", "Senior", "Ambivert"),
+    ("Amelia Diaz", "amelia.diaz@tcu.edu", "English",
+     "Creative Writing", "Freshman", "Extrovert"),
+    ("Logan Price", "logan.price@tcu.edu", "History",
+     "Political Science", "Sophomore", "Ambivert"),
+    ("Harper Long", "harper.long@tcu.edu",
+     "Biology", "Chemistry", "Junior", "Introvert"),
+    ("Jackson Ward", "jackson.ward@tcu.edu",
+     "Engineering", "Mathematics", "Senior", "Ambivert"),
+    ("Evelyn Perry", "evelyn.perry@tcu.edu",
+     "Studio Art", "Design", "Freshman", "Extrovert"),
+    ("Aiden Cooper", "aiden.cooper@tcu.edu",
+     "Graphic Design", "Studio Art", "Sophomore", "Ambivert"),
+    ("Scarlett Kelly", "scarlett.kelly@tcu.edu", "Interior Design",
+     "Fashion Merchandising", "Junior", "Ambivert"),
+    ("Henry Ross", "henry.ross@tcu.edu", "Film, Television & Digital Media",
+     "Journalism", "Senior", "Extrovert"),
+    ("Aria Barnes", "aria.barnes@tcu.edu",
+     "Communication Studies", "Marketing", "Freshman", "Ambivert"),
+    ("Wyatt Powell", "wyatt.powell@tcu.edu", "Journalism",
+     "Strategic Communication (PR/Advertising)", "Sophomore", "Extrovert"),
+    ("Ella Simmons", "ella.simmons@tcu.edu",
+     "Anthropology", "Religion", "Junior", "Introvert"),
+    ("Leo Butler", "leo.butler@tcu.edu",
+     "Philosophy", "History", "Senior", "Ambivert"),
+    ("Chloe Patterson", "chloe.patterson@tcu.edu",
+     "International Relations", "Political Science", "Freshman", "Ambivert"),
+    ("Owen Hughes", "owen.hughes@tcu.edu", "Mathematics",
+     "Computer Science", "Sophomore", "Introvert"),
+    ("Grace Bell", "grace.bell@tcu.edu", "Physics",
+     "Astronomy", "Junior", "Introvert"),
+    ("Caleb Rivera", "caleb.rivera@tcu.edu",
+     "Environmental Science & Sustainability", "Biology", "Senior", "Ambivert"),
+    ("Lily Flores", "lily.flores@tcu.edu",
+     "Environmental Earth Resources", "Geology", "Freshman", "Ambivert"),
+    ("Gabriel Nguyen", "gabriel.nguyen@tcu.edu",
+     "Actuarial Science", "Economics", "Sophomore", "Introvert"),
+    ("Zoe Sanders", "zoe.sanders@tcu.edu", "Data Science / Digital Culture & Data Analytics",
+     "Data Analytics", "Junior", "Ambivert"),
+    ("Julian Ortega", "julian.ortega@tcu.edu", "Accounting",
+     "Business Analytics", "Senior", "Extrovert"),
+    ("Nora Phillips", "nora.phillips@tcu.edu",
+     "Finance", "Management", "Freshman", "Ambivert"),
+    ("Samuel Kim", "samuel.kim@tcu.edu", "Marketing",
+     "Entrepreneurship", "Sophomore", "Extrovert"),
+    ("Riley Evans", "riley.evans@tcu.edu", "Business Information Systems",
+     "Computer Science", "Junior", "Introvert"),
+    ("Levi Turner", "levi.turner@tcu.edu",
+     "Management", "Music", "Senior", "Ambivert"),
+    ("Hannah Scott", "hannah.scott@tcu.edu",
+     "Nutritional Sciences", "Kinesiology", "Freshman", "Ambivert"),
+    ("Dylan Cruz", "dylan.cruz@tcu.edu", "Speech-Language Pathology (Communication Disorders)",
+     "Psychology", "Sophomore", "Introvert"),
+    ("Stella Griffin", "stella.griffin@tcu.edu", "Early Childhood Education",
+     "Educational Studies", "Junior", "Extrovert"),
+    ("Asher Owens", "asher.owens@tcu.edu",
+     "Secondary Education (various subjects)", "History", "Senior", "Ambivert"),
+    ("Layla Bryant", "layla.bryant@tcu.edu",
+     "Youth Advocacy & Educational Studies", "Sociology", "Freshman", "Ambivert"),
+    ("Carter Richardson", "carter.richardson@tcu.edu",
+     "Educational Studies (double major option)", "Political Science", "Sophomore", "Introvert"),
+    ("Penelope Cox", "penelope.cox@tcu.edu", "Spanish & Hispanic Studies",
+     "International Relations", "Junior", "Extrovert"),
+    ("Jayden Wood", "jayden.wood@tcu.edu",
+     "Writing & Rhetoric", "English", "Senior", "Ambivert"),
+    ("Audrey Washington", "audrey.washington@tcu.edu",
+     "Creative Writing", "English", "Freshman", "Introvert"),
+    ("Lincoln Stewart", "lincoln.stewart@tcu.edu",
+     "Geography", "History", "Sophomore", "Ambivert"),
+    ("Savannah Gray", "savannah.gray@tcu.edu",
+     "Religion", "Philosophy", "Junior", "Ambivert"),
+    ("Isaac Murphy", "isaac.murphy@tcu.edu", "Sociology",
+     "Women & Gender Studies", "Senior", "Extrovert"),
+    ("Addison Torres", "addison.torres@tcu.edu",
+     "Women & Gender Studies", "Sociology", "Freshman", "Ambivert"),
+    ("Mateo Russell", "mateo.russell@tcu.edu", "African American & Africana Studies",
+     "Comparative Race & Ethnic Studies", "Sophomore", "Extrovert"),
+    ("Victoria Hamilton", "victoria.hamilton@tcu.edu", "Comparative Race & Ethnic Studies",
+     "African American & Africana Studies", "Junior", "Ambivert"),
+    ("Josiah Graham", "josiah.graham@tcu.edu", "Asian Studies",
+     "International Relations", "Senior", "Introvert"),
+    ("Claire Sullivan", "claire.sullivan@tcu.edu", "Modern Language Studies",
+     "Spanish & Hispanic Studies", "Freshman", "Ambivert"),
+    ("Thomas Wallace", "thomas.wallace@tcu.edu", "Ranch Management",
+     "Environmental Science", "Sophomore", "Ambivert"),
+    ("Skylar West", "skylar.west@tcu.edu", "Aerospace Studies",
+     "Military Science", "Junior", "Extrovert"),
+    ("Charles Cole", "charles.cole@tcu.edu", "Military Science",
+     "Aerospace Studies", "Senior", "Ambivert"),
+    ("Lucy Jordan", "lucy.jordan@tcu.edu",
+     "Dance", "Theatre", "Freshman", "Extrovert"),
+    ("Christopher Dean", "christopher.dean@tcu.edu",
+     "Theatre", "Dance", "Sophomore", "Ambivert"),
+    ("Paisley Hunter", "paisley.hunter@tcu.edu", "Music (multiple concentrations)",
+     "Arts Leadership & Entrepreneurship", "Junior", "Ambivert"),
+    ("Andrew Hicks", "andrew.hicks@tcu.edu",
+     "Ballet / Contemporary Dance", "Dance", "Senior", "Extrovert"),
+    ("Natalie Schmidt", "natalie.schmidt@tcu.edu",
+     "Art Education", "Studio Art", "Freshman", "Ambivert"),
+    ("Nathan Weaver", "nathan.weaver@tcu.edu",
+     "Art History", "Studio Art", "Sophomore", "Introvert"),
+    ("Ellie Hansen", "ellie.hansen@tcu.edu", "Fashion Merchandising",
+     "Interior Design", "Junior", "Ambivert"),
+    ("Ryan Ford", "ryan.ford@tcu.edu", "Business Analytics (BizTech)",
+     "Business Information Systems", "Senior", "Introvert"),
+    ("Brooklyn Riley", "brooklyn.riley@tcu.edu",
+     "Entrepreneurial Management", "Marketing", "Freshman", "Extrovert"),
+    ("Adrian Chavez", "adrian.chavez@tcu.edu",
+     "Supply Chain Management", "Finance", "Sophomore", "Ambivert"),
+    ("Kennedy Lawson", "kennedy.lawson@tcu.edu",
+     "Computer Science", "Data Analytics", "Junior", "Introvert"),
+    ("Aaron Meyers", "aaron.meyers@tcu.edu",
+     "Chemistry", "Biochemistry", "Senior", "Introvert"),
+    ("Maya Pierce", "maya.pierce@tcu.edu",
+     "Biochemistry", "Chemistry", "Freshman", "Ambivert"),
+    ("Isaiah Stone", "isaiah.stone@tcu.edu", "Geology",
+     "Environmental Earth Resources", "Sophomore", "Ambivert"),
+    ("Anna Hawkins", "anna.hawkins@tcu.edu",
+     "Political Science", "Economics", "Junior", "Extrovert"),
+    ("Connor Walters", "connor.walters@tcu.edu",
+     "Economics", "Political Science", "Senior", "Ambivert"),
+    ("Sophie Carr", "sophie.carr@tcu.edu", "English",
+     "Writing & Rhetoric", "Freshman", "Introvert"),
+    ("Jonathan Harper", "jonathan.harper@tcu.edu",
+     "History", "Religion", "Sophomore", "Ambivert"),
+    ("Sarah Delgado", "sarah.delgado@tcu.edu", "Journalism",
+     "Communication Studies", "Junior", "Extrovert"),
+    ("Dominic Wade", "dominic.wade@tcu.edu",
+     "Communication Studies", "Journalism", "Senior", "Ambivert"),
+    ("Madeline Boyd", "madeline.boyd@tcu.edu",
+     "Strategic Communication (PR/Advertising)", "Marketing", "Freshman", "Extrovert"),
+    ("Evan Parks", "evan.parks@tcu.edu", "Management",
+     "Entrepreneurship", "Sophomore", "Ambivert"),
+    ("Allison Webb", "allison.webb@tcu.edu",
+     "Finance", "Accounting", "Junior", "Introvert"),
+    ("Robert Romero", "robert.romero@tcu.edu",
+     "Accounting", "Finance", "Senior", "Ambivert"),
+    ("Caroline Miles", "caroline.miles@tcu.edu", "Marketing",
+     "Business Analytics", "Freshman", "Extrovert"),
+    ("Xavier Medina", "xavier.medina@tcu.edu", "Business Information Systems",
+     "Computer Science", "Sophomore", "Introvert"),
+    ("Julia Kelley", "julia.kelley@tcu.edu", "Nursing", "", "Junior", "Ambivert"),
+    ("Brayden Bishop", "brayden.bishop@tcu.edu", "Kinesiology",
+     "Nutritional Sciences", "Senior", "Extrovert"),
+    ("Mackenzie Gardner", "mackenzie.gardner@tcu.edu",
+     "Speech-Language Pathology (Communication Disorders)", "Psychology", "Freshman", "Ambivert"),
+]
+
 
 def initialize_database(conn: sqlite3.Connection) -> None:
     """Create the database schema and seed required demo data.
@@ -232,36 +405,74 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         )
         conn.commit()
 
-    if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
-        return
-
-    users = [
-        ("Admin Dashboard", "admin@tcu.edu", "", "admin",
-         None, None, None, None, "Active", None, 0, 0),
-        ("Ambassador User", "graham.gobbel@tcu.edu", "", "ambassador",
-         "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
-        ("Emily Johnson", "emily.johnson@tcu.edu", "", "ambassador", "Marketing",
-         "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
-        ("Michael Chen", "michael.chen@tcu.edu", "", "ambassador", "Finance",
-         "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
-        ("Sarah Williams", "sarah.williams@tcu.edu", "", "ambassador", "Business Information Systems",
-         "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
-        ("David Martinez", "david.martinez@tcu.edu", "", "ambassador", "Accounting",
-         "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
-        ("Jessica Brown", "jessica.brown@tcu.edu", "", "ambassador", "Strategic Communication",
-         "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
-        ("James Wilson", "james.wilson@tcu.edu", "", "ambassador",
-         "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
-    ]
-    conn.executemany(
-        """
-        INSERT INTO users (
-            name, email, password, role, major, minor, year, personality, status,
-            ambassador_since, tours_completed, total_hours
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    placeholders = ", ".join(["?" for _ in VALID_PERSONALITIES])
+    conn.execute(
+        f"""
+        UPDATE users
+        SET personality = 'Ambivert'
+        WHERE role = 'ambassador'
+          AND personality IS NOT NULL
+          AND personality != ''
+          AND personality NOT IN ({placeholders})
         """,
-        users,
+        tuple(VALID_PERSONALITIES),
     )
+    conn.commit()
+
+    sample_ambassadors = _hard_coded_ambassador_rows()
+
+    if not conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        users = [
+            ("Admin Dashboard", "admin@tcu.edu", "", "admin",
+             None, None, None, None, "Active", None, 0, 0),
+        ]
+        users.extend(sample_ambassadors)
+        conn.executemany(
+            """
+            INSERT INTO users (
+                name, email, password, role, major, minor, year, personality, status,
+                ambassador_since, tours_completed, total_hours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            users,
+        )
+    else:
+        admin_exists = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE lower(email) = lower('admin@tcu.edu') AND role = 'admin'"
+        ).fetchone()[0]
+        if not admin_exists:
+            conn.execute(
+                """
+                INSERT INTO users (
+                    name, email, password, role, major, minor, year, personality, status,
+                    ambassador_since, tours_completed, total_hours
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ("Admin Dashboard", "admin@tcu.edu", "", "admin",
+                 None, None, None, None, "Active", None, 0, 0),
+            )
+
+        existing_emails = {
+            row[0].lower()
+            for row in conn.execute(
+                "SELECT email FROM users WHERE role = 'ambassador'"
+            ).fetchall()
+        }
+        missing_ambassadors = [
+            ambassador
+            for ambassador in sample_ambassadors
+            if ambassador[1].lower() not in existing_emails
+        ]
+        if missing_ambassadors:
+            conn.executemany(
+                """
+                INSERT INTO users (
+                    name, email, password, role, major, minor, year, personality, status,
+                    ambassador_since, tours_completed, total_hours
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                missing_ambassadors,
+            )
 
     tours = [
         ("Tour Types", "2026-04-25", "01:30 PM", "03:30 PM", "Location", 1, 1),
@@ -417,7 +628,7 @@ def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = ""
         "major_groups": MAJOR_GROUPS,
         "minors": MINOR_OPTIONS,
         "years": VALID_YEARS,
-        "personalities": ["Introvert", "Ambivert", "Extrovert"],
+        "personalities": VALID_PERSONALITIES,
         "tours_completed": tours_completed,
     }
 
@@ -619,6 +830,8 @@ def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: st
         return False, "Major and year are required."
     if year not in VALID_YEARS:
         return False, "Choose a valid undergraduate year."
+    if personality and personality not in VALID_PERSONALITIES:
+        return False, "Choose Introvert, Ambivert, or Extrovert."
     conn.execute(
         "UPDATE users SET major = ?, minor = ?, year = ?, personality = ? WHERE id = ?",
         (major, minor, year, personality, user_id),
@@ -696,7 +909,7 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
     if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
         return False, "Only one profile is allowed per ambassador email."
     conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'Ambivert', 'Active', ?, 0, 0)",
         (name, email, major, year, str(date.today().year)),
     )
     conn.commit()
@@ -765,6 +978,35 @@ def _time_labels() -> list[str]:
         Ordered list of time labels.
     """
     return ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
+
+
+def _hard_coded_ambassador_rows() -> list[tuple]:
+    """Convert hardcoded ambassador records into user-table rows.
+
+    Inputs:
+        None.
+    Outputs:
+        List of tuples matching the users insert schema.
+    """
+    rows = []
+    for name, email, major, minor, year, personality in HARD_CODED_AMBASSADORS:
+        rows.append(
+            (
+                name,
+                email,
+                "",
+                "ambassador",
+                major,
+                minor,
+                year,
+                personality,
+                "Active",
+                None,
+                0,
+                0,
+            )
+        )
+    return rows
 
 
 def _ambassador_stats(assignments: list[dict]) -> dict:
