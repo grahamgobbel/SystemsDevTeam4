@@ -1,5 +1,5 @@
-# No third-party packages are required — the project uses only Python
-# standard-library modules (sqlite3, os, datetime).
+# This project currently has no third-party Python dependencies.
+# It runs on the Python standard library only.
 #
-# Add any future dependencies below, one per line, e.g.:
+# If a package is added later, list it here one per line, for example:
 # requests==2.31.0

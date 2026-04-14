@@ -224,7 +224,12 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         return base + "&error=" + validation_message("Unknown admin action.")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Start the HTTP server for the scheduling application."""
     server = HTTPServer((HOST, PORT), SchedulingHandler)
     print(f"TCU Ambassador Scheduling System running at http://{HOST}:{PORT}")
     server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()
