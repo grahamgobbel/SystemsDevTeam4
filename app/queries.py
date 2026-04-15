@@ -479,9 +479,17 @@ def build_admin_dashboard(
     elif normalized_tour_status == "draft":
         tours = [tour for tour in tours if tour["published"] == 0]
     elif normalized_tour_status == "assigned":
-        tours = [tour for tour in tours if tour["assigned_count"] > 0]
+        tours = [
+            tour
+            for tour in tours
+            if tour["assigned_count"] >= tour["ambassadors_needed"]
+        ]
     elif normalized_tour_status == "unassigned":
-        tours = [tour for tour in tours if tour["assigned_count"] == 0]
+        tours = [
+            tour
+            for tour in tours
+            if tour["assigned_count"] < tour["ambassadors_needed"]
+        ]
 
     availability_rows = [
         dict(row)
@@ -509,7 +517,8 @@ def build_admin_dashboard(
         ]
         assigned_ids = {person["id"] for person in assigned_people}
         assigned_names = {person["name"] for person in assigned_people}
-        tour_day = datetime.strptime(tour["tour_date"], "%Y-%m-%d").strftime("%A")
+        tour_day = datetime.strptime(
+            tour["tour_date"], "%Y-%m-%d").strftime("%A")
 
         eligible = []
         for ambassador in ambassadors:
@@ -538,10 +547,12 @@ def build_admin_dashboard(
                 }
             )
 
-        eligible.sort(key=lambda row: (row["priority_rank"], row["total_hours"], row["name"]))
+        eligible.sort(key=lambda row: (
+            row["priority_rank"], row["total_hours"], row["name"]))
         tour["eligible"] = eligible
         tour["assigned_names"] = [person["name"] for person in assigned_people]
-        tour["remaining_slots"] = max(tour["ambassadors_needed"] - tour["assigned_count"], 0)
+        tour["remaining_slots"] = max(
+            tour["ambassadors_needed"] - tour["assigned_count"], 0)
 
     report_query = (
         "SELECT users.id, users.name, users.email, users.major, users.year, users.total_hours, "
@@ -567,8 +578,12 @@ def build_admin_dashboard(
     max_assigned = max(assignment_totals) if assignment_totals else 0
 
     scheduled = len(tours)
-    assigned = sum(1 for tour in tours if tour["assigned_count"] > 0)
-    unassigned = sum(1 for tour in tours if tour["assigned_count"] == 0)
+    assigned = sum(
+        1
+        for tour in tours
+        if tour["assigned_count"] >= tour["ambassadors_needed"]
+    )
+    unassigned = scheduled - assigned
     return {
         "user": user,
         "message": message,
@@ -942,6 +957,60 @@ def auto_assign_daily_tours(conn: sqlite3.Connection):
     if unfilled > 0:
         return True, f"Auto-assignment complete. Assigned {total_assigned} of {total_needed} slots ({unfilled} unfilled)."
     return True, f"Auto-assignment complete. Assigned all {total_needed} slots."
+
+
+def seed_test_availability(conn: sqlite3.Connection):
+    """Populate test availability slots with rotating priorities.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    ambassadors = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT id FROM users WHERE role = 'ambassador' ORDER BY id"
+        ).fetchall()
+    ]
+    if not ambassadors:
+        return False, "No ambassadors found to seed availability."
+
+    user_ids = [row["id"] for row in ambassadors]
+    placeholders = ",".join(["?"] * len(user_ids))
+    conn.execute(
+        f"DELETE FROM availability_slots WHERE user_id IN ({placeholders})",
+        tuple(user_ids),
+    )
+
+    weekday_slots = [
+        ("Monday", "10:00 AM", "11:00 AM"),
+        ("Monday", "02:00 PM", "03:00 PM"),
+        ("Tuesday", "10:00 AM", "11:00 AM"),
+        ("Tuesday", "02:00 PM", "03:00 PM"),
+        ("Wednesday", "10:00 AM", "11:00 AM"),
+        ("Wednesday", "02:00 PM", "03:00 PM"),
+        ("Thursday", "10:00 AM", "11:00 AM"),
+        ("Thursday", "02:00 PM", "03:00 PM"),
+        ("Friday", "10:00 AM", "11:00 AM"),
+        ("Friday", "02:00 PM", "03:00 PM"),
+    ]
+
+    rows_to_insert = []
+    for ambassador in ambassadors:
+        user_id = ambassador["id"]
+        for slot_index, (day, start_time, end_time) in enumerate(weekday_slots):
+            priority = VALID_PRIORITIES[(
+                user_id + slot_index) % len(VALID_PRIORITIES)]
+            rows_to_insert.append(
+                (user_id, day, start_time, end_time, priority, 1))
+
+    conn.executemany(
+        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, ?)",
+        rows_to_insert,
+    )
+    conn.commit()
+    return True, f"Test availability generated for {len(ambassadors)} ambassadors."
 
 
 def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:

@@ -964,6 +964,26 @@ select {
     background: #f9fbff;
 }
 
+.candidate-card.first {
+    background: #fff7e6;
+    border-color: #f1c66b;
+}
+
+.candidate-card.second {
+    background: #eef3ff;
+    border-color: #9eb3f5;
+}
+
+.candidate-card.third {
+    background: #f4ecff;
+    border-color: #c5a4ef;
+}
+
+.candidate-card.low {
+    background: #f1f3f6;
+    border-color: #c7ced9;
+}
+
 .candidate-card p {
     margin: 4px 0;
     color: var(--muted);
@@ -975,10 +995,35 @@ select {
     margin-top: 4px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: var(--green-soft);
-    color: #226d2e;
+    background: #f5f6fa;
+    color: #5b677e;
     font-weight: 700;
     font-size: 0.82rem;
+}
+
+.priority-chip.first {
+    background: #eea10a;
+    color: #ffffff;
+}
+
+.priority-chip.second {
+    background: #5576ef;
+    color: #ffffff;
+}
+
+.priority-chip.third {
+    background: #964ef2;
+    color: #ffffff;
+}
+
+.priority-chip.low {
+    background: #a8afbb;
+    color: #ffffff;
+}
+
+.priority-chip.not-set {
+    background: #dfe3e9;
+    color: #4f5b73;
 }
 
 .inline-form {

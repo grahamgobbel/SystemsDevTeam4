@@ -299,6 +299,11 @@ def _render_admin(context: dict) -> str:
             <div class=\"section-head\">
                 <div><h3>Pre-Scheduled Tours</h3><p>Available ambassadors appear by priority for each tour slot</p></div>
             </div>
+            <form method="post" action="/admin" class="footer-actions">
+                <input type="hidden" name="user" value="{user['id']}">
+                <input type="hidden" name="action" value="seed_test_availability">
+                <button class="secondary" type="submit">Generate Test Availability + Priorities</button>
+            </form>
             <div class=\"stack\">{tours_markup}</div>
         </div>
         <div class=\"admin-section\">
@@ -666,11 +671,11 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
         HTML for the tour card.
     """
     assign_forms = "".join([
-        f'''<form method="post" action="/admin" class="candidate-card"><input type="hidden" name="user" value="{admin_user_id}"><input type="hidden" name="action" value="assign_tour"><input type="hidden" name="tour_id" value="{tour['id']}"><input type="hidden" name="ambassador_id" value="{candidate['id']}"><div><strong>{escape(candidate['name'])}</strong><p>{escape(candidate['email'])}</p><span class="priority-chip">{escape(candidate['priority'])}</span></div><button class="secondary small" type="submit">Add</button></form>'''
+        f'''<form method="post" action="/admin" class="candidate-card {_priority_class(candidate['priority'])}"><input type="hidden" name="user" value="{admin_user_id}"><input type="hidden" name="action" value="assign_tour"><input type="hidden" name="tour_id" value="{tour['id']}"><input type="hidden" name="ambassador_id" value="{candidate['id']}"><div><strong>{escape(candidate['name'])}</strong><p>{escape(candidate['email'])}</p><span class="priority-chip {_priority_class(candidate['priority'])}">{escape(candidate['priority'])}</span></div><button class="secondary small" type="submit">Add</button></form>'''
         for candidate in tour["eligible"]
     ])
     assigned_names = "".join(
-        [f'<li>{idx}. {escape(name)}</li>' for idx, name in enumerate(tour.get("assigned_names", []), start=1)]
+        [f'<li>{escape(name)}</li>' for name in tour.get("assigned_names", [])]
     ) or "<li>No one assigned yet.</li>"
     status = "published" if tour["published"] else "draft"
     remaining = tour.get("remaining_slots", 0)
