@@ -583,7 +583,16 @@ def build_admin_dashboard(
         for tour in tours
         if tour["assigned_count"] >= tour["ambassadors_needed"]
     )
-    unassigned = scheduled - assigned
+    in_progress = sum(
+        1
+        for tour in tours
+        if 0 < tour["assigned_count"] < tour["ambassadors_needed"]
+    )
+    unassigned = sum(
+        1
+        for tour in tours
+        if tour["assigned_count"] == 0
+    )
     return {
         "user": user,
         "message": message,
@@ -602,7 +611,13 @@ def build_admin_dashboard(
             "avg_assigned": avg_assigned,
             "max_assigned": max_assigned,
         },
-        "stats": {"total_ambassadors": len(ambassadors), "scheduled": scheduled, "assigned": assigned, "unassigned": unassigned},
+        "stats": {
+            "total_ambassadors": len(ambassadors),
+            "scheduled": scheduled,
+            "assigned": assigned,
+            "in_progress": in_progress,
+            "unassigned": unassigned,
+        },
         "weekly_schedule": _build_weekly_schedule(conn),
     }
 
@@ -1263,7 +1278,7 @@ def _build_weekly_schedule(conn: sqlite3.Connection) -> dict:
             names = schedule[time][day]["names"]
             remaining = max(needed - len(names), 0)
             if remaining > 0:
-                names.extend(["GROUP - ROTATING"] * remaining)
+                names.extend(["Unassigned"] * remaining)
 
     return {
         "days": days,

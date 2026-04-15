@@ -837,6 +837,20 @@ select {
     margin-top: 28px;
 }
 
+.metric-grid.compact-metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metric-grid.compact-metrics .metric-card {
+    padding: 18px 14px;
+}
+
+.metric-grid.compact-metrics .metric-card strong {
+    font-size: 1.45rem;
+    margin-top: 6px;
+}
+
 .metric-card {
     padding: 28px 24px;
 }

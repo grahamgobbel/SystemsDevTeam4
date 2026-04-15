@@ -288,10 +288,11 @@ def _render_admin(context: dict) -> str:
         </div>
         {_flash(context.get('message', ''), 'success')}
         {_flash(context.get('error', ''), 'error')}
-        <div class=\"metric-grid\">
+        <div class="metric-grid compact-metrics">
             {_metric_card('Total Ambassadors', stat['total_ambassadors'], 'purple')}
             {_metric_card('Scheduled Tours', stat['scheduled'], 'blue')}
             {_metric_card('Assigned Tours', stat['assigned'], 'green')}
+            {_metric_card('Tours In Progress', stat['in_progress'], 'blue')}
             {_metric_card('Unassigned Tours', stat['unassigned'], 'gold')}
         </div>
         <div class=\"info-panel\"><strong>Tour Management</strong><p>Daily tours are pre-scheduled for Monday through Friday at 10:00 AM and 2:00 PM. For each tour, add ambassadors from the available list until the tour is full.</p></div>
