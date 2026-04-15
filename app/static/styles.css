@@ -931,6 +931,56 @@ select {
     margin-top: 14px;
 }
 
+.tour-card-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.tour-card-columns h5 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.assigned-list {
+    margin: 10px 0 0;
+    padding-left: 20px;
+    color: var(--text);
+}
+
+.assigned-list li {
+    margin-bottom: 6px;
+}
+
+.candidate-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #f9fbff;
+}
+
+.candidate-card p {
+    margin: 4px 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.priority-chip {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--green-soft);
+    color: #226d2e;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
 .inline-form {
     display: flex;
     justify-content: space-between;
@@ -1006,6 +1056,10 @@ select {
     }
 
     .ambassador-row {
+        grid-template-columns: 1fr;
+    }
+
+    .tour-card-columns {
         grid-template-columns: 1fr;
     }
 }

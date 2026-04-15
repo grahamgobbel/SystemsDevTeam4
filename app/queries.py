@@ -1,170 +1,170 @@
 ﻿"""
-Query and data shaping helpers for the TCU Ambassador Scheduling System.
+Application Title: TCU Ambassador Scheduling System
+Date: 2026-04-14
+Authors: SystemsDevTeam4
+Purpose: Provide database setup, query helpers, validation, and dashboard
+data shaping for the scheduling application.
 """
 
 import sqlite3
+from datetime import date, datetime, timedelta
 
 
-VALID_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
+              "Thursday", "Friday", "Saturday", "Sunday"]
 VALID_PRIORITIES = ["1st Priority",
                     "2nd Priority", "3rd Priority", "Low Priority"]
 VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
-VALID_TIMES = [
-    "8:00 AM",
-    "9:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "1:00 PM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-    "5:00 PM",
+MAJOR_GROUPS = [
+    ("Neeley School of Business", [
+        "Accounting",
+        "Business Information Systems",
+        "Entrepreneurial Management",
+        "Finance",
+        "Marketing",
+        "Supply Chain Management",
+        "Business Analytics (BizTech)",
+        "Management",
+    ]),
+    ("AddRan College of Liberal Arts", [
+        "African American & Africana Studies",
+        "Anthropology",
+        "Asian Studies",
+        "Comparative Race & Ethnic Studies",
+        "Economics",
+        "English",
+        "Writing & Rhetoric",
+        "Creative Writing",
+        "Geography",
+        "History",
+        "International Relations",
+        "Modern Language Studies",
+        "Philosophy",
+        "Political Science",
+        "Religion",
+        "Sociology",
+        "Spanish & Hispanic Studies",
+        "Women & Gender Studies",
+    ]),
+    ("College of Science & Engineering", [
+        "Biology",
+        "Biochemistry",
+        "Chemistry",
+        "Computer Science",
+        "Data Science / Digital Culture & Data Analytics",
+        "Engineering",
+        "Environmental Science & Sustainability",
+        "Environmental Earth Resources",
+        "Geology",
+        "Mathematics",
+        "Physics",
+        "Actuarial Science",
+        "Astronomy",
+    ]),
+    ("Bob Schieffer College of Communication", [
+        "Communication Studies",
+        "Journalism",
+        "Strategic Communication (PR/Advertising)",
+        "Film, Television & Digital Media",
+    ]),
+    ("College of Fine Arts", [
+        "Art Education",
+        "Art History",
+        "Studio Art",
+        "Graphic Design",
+        "Interior Design",
+        "Fashion Merchandising",
+        "Theatre",
+        "Dance",
+        "Music (multiple concentrations)",
+        "Ballet / Contemporary Dance",
+        "Arts Leadership & Entrepreneurship",
+    ]),
+    ("Harris College of Nursing & Health Sciences", [
+        "Nursing",
+        "Kinesiology",
+        "Nutritional Sciences",
+        "Athletic Training",
+        "Speech-Language Pathology (Communication Disorders)",
+    ]),
+    ("College of Education", [
+        "Early Childhood Education",
+        "Middle School Education (various tracks)",
+        "Secondary Education (various subjects)",
+        "Youth Advocacy & Educational Studies",
+        "Educational Studies (double major option)",
+    ]),
+    ("Other / Specialized", [
+        "Ranch Management",
+        "Aerospace Studies",
+        "Military Science",
+    ]),
+]
+MINOR_OPTIONS = [
+    "Accounting",
+    "Finance",
+    "Marketing",
+    "Entrepreneurship",
+    "Business Analytics",
+    "Economics",
+    "Political Science",
+    "Philosophy",
+    "Religion",
+    "Sociology",
+    "History",
+    "English",
+    "Creative Writing",
+    "Computer Science",
+    "Mathematics",
+    "Data Analytics",
+    "Environmental Science",
+    "Biology",
+    "Digital Culture & Data Analytics",
+    "Comparative Race & Ethnic Studies",
+    "African American & Africana Studies",
+    "Latinx Studies",
+    "Women & Gender Studies",
+    "Studio Art",
+    "Design",
+    "Theatre",
+    "Dance",
+    "Music",
+    "Educational Studies",
+    "Youth Advocacy",
+    "Nursing",
+    "Kinesiology",
+    "Nutritional Sciences",
+    "Athletic Training",
+    "Speech-Language Pathology",
+    "Aerospace Studies",
+    "Military Science",
 ]
 
-SLOT_REQUIREMENTS = [
-    {"day": "Monday", "time": "10:00 AM", "needed": 7},
-    {"day": "Tuesday", "time": "10:00 AM", "needed": 7},
-    {"day": "Wednesday", "time": "10:00 AM", "needed": 8},
-    {"day": "Thursday", "time": "10:00 AM", "needed": 8},
-    {"day": "Friday", "time": "10:00 AM", "needed": 13},
-    {"day": "Monday", "time": "2:00 PM", "needed": 9},
-    {"day": "Tuesday", "time": "2:00 PM", "needed": 8},
-    {"day": "Wednesday", "time": "2:00 PM", "needed": 8},
-    {"day": "Thursday", "time": "2:00 PM", "needed": 9},
-    {"day": "Friday", "time": "2:00 PM", "needed": 13},
+DAILY_TOUR_TYPE = "Daily Tour"
+DAILY_TOUR_LOCATION = "Admissions Office"
+MAX_AMBASSADORS = 85
+DAILY_TOUR_SLOTS = [
+    ("Monday", "10:00 AM", "11:00 AM", 7),
+    ("Tuesday", "10:00 AM", "11:00 AM", 7),
+    ("Wednesday", "10:00 AM", "11:00 AM", 8),
+    ("Thursday", "10:00 AM", "11:00 AM", 8),
+    ("Friday", "10:00 AM", "11:00 AM", 13),
+    ("Monday", "02:00 PM", "03:00 PM", 9),
+    ("Tuesday", "02:00 PM", "03:00 PM", 8),
+    ("Wednesday", "02:00 PM", "03:00 PM", 8),
+    ("Thursday", "02:00 PM", "03:00 PM", 9),
+    ("Friday", "02:00 PM", "03:00 PM", 13),
 ]
-
-DAY_INDEX = {day: index for index, day in enumerate(VALID_DAYS)}
-PRIORITY_RANK = {
-    "1st Priority": 0,
-    "2nd Priority": 1,
-    "3rd Priority": 2,
-    "Low Priority": 3,
-}
-
-
-MORNING_NAMES = [
-    "Blake Edwards",
-    "Corey Blake Townsend",
-    "Jasmine Durrant",
-    "Leah Krampert",
-    "Mary Helen Banks",
-    "Regan Albertson",
-    "Takeshi Suzuki",
-    "Gracie Gadler",
-    "Cameron La Marca",
-    "Jadyn Suarez",
-    "Joe Basile",
-    "Meredith Vorndran",
-    "Owen Sullivan",
-    "Zander Mathes",
-    "Katie Barnes",
-    "Arleth Rivera",
-    "Britton Majure",
-    "Lillie Ciszek",
-    "Logan Kohler",
-    "Moti Okunrotifa",
-    "Owen Mlakar",
-    "Ryan Murray",
-    "Carrington Henley",
-    "Ava Miller",
-    "Claire O'Connor",
-    "Emma Huther",
-    "Juan Barrio",
-    "Roberto Basurto",
-    "Tate Deshotels",
-    "Teddy O'Hara",
-    "Bella Rinaldi",
-    "Cooper Quisenberry",
-    "Jonah Felger",
-    "Jordan Talley",
-    "Leah Burcham",
-    "Levi Miller",
-    "Lizzie Vezzetti",
-    "Mac Abele",
-    "Reagan White",
-    "Riann Alderson",
-    "Sarah Kaler",
-    "Silvia Romero",
-    "Titus Fagan",
-]
-
-AFTERNOON_NAMES = [
-    "Ashlynn Adams",
-    "Camila Parra",
-    "Eleni Simatacolos",
-    "Jack Grace",
-    "Jillian Sisley",
-    "Johnny McMonagle",
-    "Lily Macken",
-    "Michel Graham",
-    "Vincent Lopez",
-    "Dylan King",
-    "AJ Gonzalez",
-    "Alexis Garcia",
-    "Ayomide Lowo",
-    "Caroline Patterson",
-    "Daniel Mitchell",
-    "Hampton Zidlicky",
-    "Keira Braun",
-    "Ace Reeder",
-    "Addy Haas",
-    "Dylan Markey",
-    "Hannah Jones",
-    "Lexi Kilpatrick",
-    "Mia Vu",
-    "Reagan Huscher",
-    "Stephen Adeoye",
-    "Amarachi Nwosu",
-    "Charlie Brannen",
-    "Charlotte Blank",
-    "Franchesca Sabando",
-    "Josh Roberts",
-    "Kylie Elam",
-    "Mike Hilbig",
-    "Reese Westlund",
-    "Samantha Youngblood",
-    "Lilly Bundrant",
-    "Chase Robinson",
-    "Dulce Sancen",
-    "Elise Tjin",
-    "Jack Langloh",
-    "Katherine Grace",
-    "Lona Le",
-    "Macy Bayer",
-    "Omid Ghuman",
-    "Riley Sullivan",
-    "Sadie Kreter",
-    "Sandra Crowder",
-    "Sophia Dockstader",
-]
-
-SEED_AMBASSADORS = [
-    {"name": "Graham Gobbel", "email": "graham.gobbel@tcu.edu", "major": "Computer Science",
-        "minor": "Business", "year": "Junior", "personality": "ENFP", "since": "Fall 2024", "tours_completed": 47},
-]
-
-for name in MORNING_NAMES + AFTERNOON_NAMES:
-    email = name.lower().replace("'", "").replace(
-        ".", "").replace(" ", ".") + "@tcu.edu"
-    if email == "graham.gobbel@tcu.edu":
-        continue
-    SEED_AMBASSADORS.append(
-        {
-            "name": name,
-            "email": email,
-            "major": "Business Information Systems",
-            "minor": "",
-            "year": "Junior",
-            "personality": "ENFP",
-            "since": "Fall 2024",
-            "tours_completed": 12,
-        }
-    )
 
 
 def initialize_database(conn: sqlite3.Connection) -> None:
+    """Create the database schema and seed required demo data.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Creates tables and inserts starter data when needed.
+    """
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -179,7 +179,8 @@ def initialize_database(conn: sqlite3.Connection) -> None:
             personality TEXT,
             status TEXT DEFAULT 'Active',
             ambassador_since TEXT,
-            tours_completed INTEGER DEFAULT 0
+            tours_completed INTEGER DEFAULT 0,
+            total_hours INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS notifications (
@@ -202,97 +203,172 @@ def initialize_database(conn: sqlite3.Connection) -> None:
             submitted INTEGER DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS tours (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tour_type TEXT NOT NULL,
+            tour_date TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            location TEXT NOT NULL,
+            ambassadors_needed INTEGER NOT NULL,
+            published INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS tour_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tour_id INTEGER NOT NULL,
+            ambassador_id INTEGER NOT NULL,
+            FOREIGN KEY(tour_id) REFERENCES tours(id),
+            FOREIGN KEY(ambassador_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
         """
     )
     conn.commit()
 
-    _ensure_user(
-        conn,
-        {
-            "name": "Admin Dashboard",
-            "email": "admin@tcu.edu",
-            "major": "",
-            "minor": "",
-            "year": "",
-            "personality": "",
-            "since": "",
-            "tours_completed": 0,
-        },
-        role="admin",
+    if not conn.execute("SELECT value FROM app_meta WHERE key = 'demo_seed_cleaned'").fetchone():
+        ambassador_row = conn.execute(
+            "SELECT id FROM users WHERE lower(email) = lower('graham.gobbel@tcu.edu')"
+        ).fetchone()
+        if ambassador_row:
+            ambassador_id = ambassador_row[0]
+            conn.execute(
+                "DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
+            conn.execute(
+                "DELETE FROM notifications WHERE user_id = ?", (ambassador_id,))
+            conn.execute(
+                "DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
+        conn.execute(
+            "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('demo_seed_cleaned', '1')"
+        )
+        conn.commit()
+
+    if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        _sync_fixed_daily_tours(conn)
+        _normalize_ambassador_roster(conn, MAX_AMBASSADORS)
+        return
+
+    users = [
+        ("Admin Dashboard", "admin@tcu.edu", "", "admin",
+         None, None, None, None, "Active", None, 0, 0),
+        ("Ambassador User", "graham.gobbel@tcu.edu", "", "ambassador",
+         "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
+        ("Emily Johnson", "emily.johnson@tcu.edu", "", "ambassador", "Marketing",
+         "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
+        ("Michael Chen", "michael.chen@tcu.edu", "", "ambassador", "Finance",
+         "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
+        ("Sarah Williams", "sarah.williams@tcu.edu", "", "ambassador", "Business Information Systems",
+         "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
+        ("David Martinez", "david.martinez@tcu.edu", "", "ambassador", "Accounting",
+         "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
+        ("Jessica Brown", "jessica.brown@tcu.edu", "", "ambassador", "Strategic Communication",
+         "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
+        ("James Wilson", "james.wilson@tcu.edu", "", "ambassador",
+         "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
+    ]
+    conn.executemany(
+        """
+        INSERT INTO users (
+            name, email, password, role, major, minor, year, personality, status,
+            ambassador_since, tours_completed, total_hours
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        users,
     )
 
-    for ambassador in SEED_AMBASSADORS:
-        ambassador_id = _ensure_user(conn, ambassador, role="ambassador")
-        _ensure_seed_availability(conn, ambassador_id)
-
-    graham_id = conn.execute(
-        "SELECT id FROM users WHERE lower(email) = 'graham.gobbel@tcu.edu'"
-    ).fetchone()[0]
-    _ensure_notifications(conn, graham_id)
     conn.commit()
 
+    _sync_fixed_daily_tours(conn)
+    _normalize_ambassador_roster(conn, MAX_AMBASSADORS)
 
-def lookup_user(conn: sqlite3.Connection, email: str, role: str):
+
+def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
+    """Find or create a user record based on email and role.
+
+    Inputs:
+        conn: Open SQLite connection.
+        email: User-provided email address.
+        password: Unused placeholder kept for interface compatibility.
+        role: Requested account role.
+    Outputs:
+        A dictionary with user details, or None when email is empty.
+    """
+    normalized_email = email.strip()
+    if not normalized_email:
+        return None
+
+    normalized_role = role if role in {"admin", "ambassador"} else "ambassador"
     row = conn.execute(
-        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?) AND role = ?",
-        (email, role),
+        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
+        (normalized_email,),
     ).fetchone()
+
     if row:
+        if row["role"] != normalized_role:
+            conn.execute("UPDATE users SET role = ? WHERE id = ?",
+                         (normalized_role, row["id"]))
+            conn.commit()
+            row = conn.execute(
+                "SELECT id, name, email, role FROM users WHERE id = ?",
+                (row["id"],),
+            ).fetchone()
         return dict(row)
-    # For demo mode, return None to trigger auto-creation
+
     return None
 
 
 def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
+    """Build the dashboard data for an ambassador.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+    Outputs:
+        Dictionary containing the user record, assignments, notifications, and
+        summary stats.
+    """
     user = _get_user(conn, user_id, "ambassador")
-    schedule = generate_weekly_schedule(conn)
-    assignments = []
-    for slot in schedule["slots"]:
-        if any(item["id"] == user_id for item in slot["assigned"]):
-            assignments.append(
-                {
-                    "tour_type": "Daily Tour",
-                    "tour_date_label": slot["label"],
-                    "tour_time": slot["time"],
-                    "location": "Admissions Office",
-                    "status": "confirmed" if slot["filled"] else "pending",
-                }
-            )
-    notifications = [
+    notifications = [dict(row) for row in conn.execute(
+        "SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id", (user_id,)).fetchall()]
+    assignments = [
         dict(row)
         for row in conn.execute(
-            "SELECT title, detail, kind, age_label FROM notifications WHERE user_id = ? ORDER BY id",
+            """
+            SELECT tours.id, tours.tour_type, tours.tour_date, tours.start_time, tours.end_time, tours.location,
+                   tours.ambassadors_needed,
+                   CASE WHEN tours.published = 1 THEN 'confirmed' ELSE 'pending' END AS status
+            FROM tours
+            JOIN tour_assignments ON tour_assignments.tour_id = tours.id
+            WHERE tour_assignments.ambassador_id = ?
+            ORDER BY tours.tour_date
+            """,
             (user_id,),
         ).fetchall()
     ]
-    return {
-        "user": user,
-        "notifications": notifications,
-        "assignments": assignments,
-        "stats": {
-            "total_tours": len(assignments),
-            "hours_completed": user["tours_completed"],
-            "upcoming_events": len(assignments),
-        },
-    }
+    stats = _ambassador_stats(assignments)
+    return {"user": user, "notifications": notifications, "assignments": assignments, "stats": stats}
 
 
-def build_availability_page(
-    conn: sqlite3.Connection,
-    user_id: int,
-    view: str,
-    message: str = "",
-    error: str = "",
-) -> dict:
+def build_availability_page(conn: sqlite3.Connection, user_id: int, view: str, message: str = "", error: str = "") -> dict:
+    """Build the data needed by the availability views.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        view: Requested subview name.
+        message: Success feedback text.
+        error: Error feedback text.
+    Outputs:
+        Dictionary containing slots, labels, and view state.
+    """
     user = _get_user(conn, user_id, "ambassador")
-    slots = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY CASE day WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 END, start_time",
-            (user_id,),
-        ).fetchall()
-    ]
-    grid = _build_availability_grid(slots)
+    slots = [dict(row) for row in conn.execute(
+        "SELECT id, day, start_time, end_time, priority, submitted FROM availability_slots WHERE user_id = ? ORDER BY day, start_time", (user_id,)).fetchall()]
     return {
         "user": user,
         "view": view if view in {"dashboard", "weekly"} else "dashboard",
@@ -301,169 +377,291 @@ def build_availability_page(
         "slots": slots,
         "days": VALID_DAYS,
         "priorities": VALID_PRIORITIES,
-        "time_labels": VALID_TIMES,
-        "week_label": "Standard Weekly Daily Tour Schedule",
+        "time_labels": _time_labels(),
+        "week_label": "Week of April 6, 2026",
         "slot_count": len(slots),
-        "grid": grid,
     }
 
 
 def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+    """Build the data needed by the ambassador profile page.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        message: Success feedback text.
+        error: Error feedback text.
+    Outputs:
+        Dictionary containing profile options and account information.
+    """
     user = _get_user(conn, user_id, "ambassador")
+    tours_completed = conn.execute(
+        "SELECT COUNT(*) FROM tour_assignments WHERE ambassador_id = ?",
+        (user_id,),
+    ).fetchone()[0]
     return {
         "user": user,
         "message": message,
         "error": error,
-        "majors": [
-            "Computer Science",
-            "Marketing",
-            "Finance",
-            "Accounting",
-            "Management",
-            "Business Information Systems",
-            "Strategic Communication",
-        ],
-        "minors": ["", "Business", "Data Science", "Spanish", "Economics", "Psychology", "Journalism", "Music"],
+        "major_groups": MAJOR_GROUPS,
+        "minors": MINOR_OPTIONS,
         "years": VALID_YEARS,
-        "personalities": ["ENFP", "ENFJ", "INFJ", "ENTP", "ISFP", "INTJ", "ESFJ"],
+        "personalities": ["Introvert", "Ambivert", "Extrovert"],
+        "tours_completed": tours_completed,
     }
 
 
-def build_admin_dashboard(conn: sqlite3.Connection, user_id: int, message: str = "", error: str = "") -> dict:
+def build_admin_dashboard(
+    conn: sqlite3.Connection,
+    user_id: int,
+    message: str = "",
+    error: str = "",
+    ambassador_search: str = "",
+    tour_status: str = "all",
+) -> dict:
+    """Build the data needed by the admin dashboard.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Admin account id.
+        message: Success feedback text.
+        error: Error feedback text.
+        ambassador_search: Search text for ambassadors.
+        tour_status: Filter value for tours.
+    Outputs:
+        Dictionary containing ambassadors, tours, and summary stats.
+    """
     user = _get_user(conn, user_id, "admin")
+    _sync_fixed_daily_tours(conn)
+
+    search_term = ambassador_search.strip()
+    ambassador_filters = ["role = 'ambassador'"]
+    ambassador_params: list[str] = []
+    if search_term:
+        wildcard = f"%{search_term}%"
+        ambassador_filters.append(
+            "(name LIKE ? OR email LIKE ? OR major LIKE ?)")
+        ambassador_params.extend([wildcard, wildcard, wildcard])
+
+    ambassador_query = (
+        "SELECT id, name, email, total_hours, major, year "
+        "FROM users WHERE " +
+        " AND ".join(ambassador_filters) + " ORDER BY name"
+    )
     ambassadors = [
         dict(row)
+        for row in conn.execute(ambassador_query, tuple(ambassador_params)).fetchall()
+    ]
+
+    tours = [
+        dict(row)
         for row in conn.execute(
-            "SELECT id, name, email, major, year, tours_completed FROM users WHERE role = 'ambassador' ORDER BY name"
+            """
+            SELECT tours.id, tours.tour_type, tours.tour_date, tours.start_time, tours.end_time, tours.location,
+                   tours.ambassadors_needed, tours.published,
+                   COUNT(tour_assignments.id) AS assigned_count
+            FROM tours
+            LEFT JOIN tour_assignments ON tour_assignments.tour_id = tours.id
+            WHERE tours.tour_type = ?
+            GROUP BY tours.id
+            ORDER BY tours.tour_date
+            """,
+            (DAILY_TOUR_TYPE,),
         ).fetchall()
     ]
-    schedule = generate_weekly_schedule(conn)
+
+    normalized_tour_status = tour_status if tour_status in {
+        "all", "published", "draft", "assigned", "unassigned"
+    } else "all"
+
+    if normalized_tour_status == "published":
+        tours = [tour for tour in tours if tour["published"] == 1]
+    elif normalized_tour_status == "draft":
+        tours = [tour for tour in tours if tour["published"] == 0]
+    elif normalized_tour_status == "assigned":
+        tours = [tour for tour in tours if tour["assigned_count"] > 0]
+    elif normalized_tour_status == "unassigned":
+        tours = [tour for tour in tours if tour["assigned_count"] == 0]
+
+    availability_rows = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT user_id, day, start_time, end_time, priority FROM availability_slots"
+        ).fetchall()
+    ]
+    slots_by_user: dict[int, list[dict]] = {}
+    for slot in availability_rows:
+        slots_by_user.setdefault(slot["user_id"], []).append(slot)
+
+    for tour in tours:
+        assigned_people = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT users.id, users.name
+                FROM tour_assignments
+                JOIN users ON users.id = tour_assignments.ambassador_id
+                WHERE tour_assignments.tour_id = ?
+                ORDER BY users.name
+                """,
+                (tour["id"],),
+            ).fetchall()
+        ]
+        assigned_ids = {person["id"] for person in assigned_people}
+        assigned_names = {person["name"] for person in assigned_people}
+        tour_day = datetime.strptime(tour["tour_date"], "%Y-%m-%d").strftime("%A")
+
+        eligible = []
+        for ambassador in ambassadors:
+            ambassador_id = ambassador["id"]
+            if ambassador_id in assigned_ids:
+                continue
+            if ambassador["name"] in assigned_names:
+                continue
+            rank = _best_priority_for_tour(
+                slots_by_user.get(ambassador_id, []),
+                tour_day,
+                tour["start_time"],
+                tour["end_time"],
+            )
+            if rank is None:
+                continue
+
+            eligible.append(
+                {
+                    "id": ambassador_id,
+                    "name": ambassador["name"],
+                    "email": ambassador["email"],
+                    "total_hours": ambassador["total_hours"],
+                    "priority_rank": rank,
+                    "priority": _priority_label_from_rank(rank),
+                }
+            )
+
+        eligible.sort(key=lambda row: (row["priority_rank"], row["total_hours"], row["name"]))
+        tour["eligible"] = eligible
+        tour["assigned_names"] = [person["name"] for person in assigned_people]
+        tour["remaining_slots"] = max(tour["ambassadors_needed"] - tour["assigned_count"], 0)
+
+    report_query = (
+        "SELECT users.id, users.name, users.email, users.major, users.year, users.total_hours, "
+        "COUNT(tour_assignments.id) AS assigned_tours "
+        "FROM users "
+        "LEFT JOIN tour_assignments ON tour_assignments.ambassador_id = users.id "
+        "WHERE role = 'ambassador'"
+    )
+    report_params: list[str] = []
+    if search_term:
+        wildcard = f"%{search_term}%"
+        report_query += " AND (users.name LIKE ? OR users.email LIKE ? OR users.major LIKE ?)"
+        report_params.extend([wildcard, wildcard, wildcard])
+    report_query += " GROUP BY users.id ORDER BY assigned_tours DESC, users.total_hours DESC, users.name"
+    report_rows = [
+        dict(row)
+        for row in conn.execute(report_query, tuple(report_params)).fetchall()
+    ]
+
+    assignment_totals = [row["assigned_tours"] for row in report_rows]
+    avg_assigned = round(sum(assignment_totals) /
+                         len(assignment_totals), 2) if assignment_totals else 0
+    max_assigned = max(assignment_totals) if assignment_totals else 0
+
+    scheduled = len(tours)
+    assigned = sum(1 for tour in tours if tour["assigned_count"] > 0)
+    unassigned = sum(1 for tour in tours if tour["assigned_count"] == 0)
     return {
         "user": user,
         "message": message,
         "error": error,
         "ambassadors": ambassadors,
-        "schedule": schedule,
-        "stats": {
-            "total_ambassadors": len(ambassadors),
-            "tour_slots": len(schedule["slots"]),
-            "filled_slots": sum(1 for slot in schedule["slots"] if slot["filled"]),
-            "unfilled_positions": schedule["total_open_positions"],
+        "tours": tours,
+        "filters": {
+            "search": search_term,
+            "tour_status": normalized_tour_status,
+            "tour_status_options": ["all", "published", "draft", "assigned", "unassigned"],
         },
+        "report": {
+            "generated_on": date.today().isoformat(),
+            "rows": report_rows,
+            "total_rows": len(report_rows),
+            "avg_assigned": avg_assigned,
+            "max_assigned": max_assigned,
+        },
+        "stats": {"total_ambassadors": len(ambassadors), "scheduled": scheduled, "assigned": assigned, "unassigned": unassigned},
+        "weekly_schedule": _build_weekly_schedule(conn),
     }
 
 
-def generate_weekly_schedule(conn: sqlite3.Connection) -> dict:
-    ambassadors = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT id, name, email FROM users WHERE role = 'ambassador' ORDER BY name"
-        ).fetchall()
-    ]
-    availability_rows = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT user_id, day, start_time, end_time, priority FROM availability_slots ORDER BY user_id, day, start_time"
-        ).fetchall()
-    ]
-    availability_by_user = {}
-    for row in availability_rows:
-        availability_by_user.setdefault(row["user_id"], []).append(row)
+def add_availability_slot(conn: sqlite3.Connection, user_id: int, day: str, start_time: str, end_time: str, priority: str):
+    """Add one availability slot for an ambassador.
 
-    assignment_counts = {ambassador["id"]: 0 for ambassador in ambassadors}
-    slots = []
-
-    for requirement in SLOT_REQUIREMENTS:
-        eligible = []
-        for ambassador in ambassadors:
-            best_priority = _best_priority_for_slot(
-                availability_by_user.get(ambassador["id"], []),
-                requirement["day"],
-                requirement["time"],
-            )
-            if best_priority is None:
-                continue
-            eligible.append(
-                {
-                    "id": ambassador["id"],
-                    "name": ambassador["name"],
-                    "priority": best_priority,
-                    "assignment_count": assignment_counts[ambassador["id"]],
-                }
-            )
-
-        eligible.sort(
-            key=lambda item: (
-                PRIORITY_RANK[item["priority"]],
-                item["assignment_count"],
-                item["name"],
-            )
-        )
-        selected = eligible[: requirement["needed"]]
-        for item in selected:
-            assignment_counts[item["id"]] += 1
-
-        slots.append(
-            {
-                "day": requirement["day"],
-                "time": requirement["time"],
-                "label": f"{requirement['day']} - {requirement['time']}",
-                "needed": requirement["needed"],
-                "assigned": selected,
-                "filled": len(selected) == requirement["needed"],
-                "open_positions": requirement["needed"] - len(selected),
-            }
-        )
-
-    slots_by_time = {
-        "10:00 AM": [slot for slot in slots if slot["time"] == "10:00 AM"],
-        "2:00 PM": [slot for slot in slots if slot["time"] == "2:00 PM"],
-    }
-    return {
-        "slots": slots,
-        "slots_by_time": slots_by_time,
-        "total_open_positions": sum(slot["open_positions"] for slot in slots),
-    }
-
-
-def add_availability_slot(
-    conn: sqlite3.Connection,
-    user_id: int,
-    day: str,
-    start_time: str,
-    end_time: str,
-    priority: str,
-):
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        day: Weekday name.
+        start_time: Slot start time.
+        end_time: Slot end time.
+        priority: Priority ranking string.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if day not in VALID_DAYS:
-        return False, "Choose a valid weekday."
-    if start_time not in VALID_TIMES or end_time not in VALID_TIMES:
-        return False, "Choose start and end times from the list."
+        return False, "Choose a valid day of the week."
+    if not start_time or not end_time or len(start_time) < 7 or len(end_time) < 7:
+        return False, "Time slots must follow the HH:MM AM/PM format."
     if priority not in VALID_PRIORITIES:
         return False, "Choose one of the predefined priority rankings."
-    start_minutes = _time_to_minutes(start_time)
-    end_minutes = _time_to_minutes(end_time)
-    if end_minutes <= start_minutes:
+    try:
+        start_dt = datetime.strptime(start_time, "%I:%M %p")
+        end_dt = datetime.strptime(end_time, "%I:%M %p")
+    except ValueError:
+        return False, "Time slots must follow the HH:MM AM/PM format."
+    if start_dt >= end_dt:
         return False, "End time must be later than start time."
-
-    existing_rows = conn.execute(
-        "SELECT start_time, end_time FROM availability_slots WHERE user_id = ? AND day = ?",
-        (user_id, day),
-    ).fetchall()
-    for row in existing_rows:
-        existing_start = _time_to_minutes(row["start_time"])
-        existing_end = _time_to_minutes(row["end_time"])
-        if start_minutes < existing_end and end_minutes > existing_start:
-            return False, "Overlapping or duplicate entries are not allowed."
-
+    overlap = conn.execute(
+        "SELECT COUNT(*) FROM availability_slots WHERE user_id = ? AND day = ? AND start_time = ? AND end_time = ?",
+        (user_id, day, start_time, end_time),
+    ).fetchone()[0]
+    if overlap:
+        return False, "Duplicate weekly slots are not allowed."
     conn.execute(
-        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, 1)",
+        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, 0)",
         (user_id, day, start_time, end_time, priority),
     )
     conn.commit()
     return True, "Weekly slot added successfully."
 
 
+def clear_availability_slots(conn: sqlite3.Connection, user_id: int):
+    """Delete all availability slots for one ambassador.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    if user_id <= 0:
+        return False, "Invalid ambassador account."
+    conn.execute(
+        "DELETE FROM availability_slots WHERE user_id = ?", (user_id,))
+    conn.commit()
+    return True, "All weekly availability slots were cleared."
+
+
 def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, personality: str):
+    """Update an ambassador profile.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Ambassador account id.
+        major: Selected major.
+        minor: Selected minor.
+        year: Undergraduate year.
+        personality: Personality type.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if not major or not year:
         return False, "Major and year are required."
     if year not in VALID_YEARS:
@@ -476,29 +674,152 @@ def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: st
     return True, "Profile changes saved."
 
 
+def add_tour(conn: sqlite3.Connection, tour_type: str, tour_date: str, start_time: str, end_time: str, location: str, ambassadors_needed: int):
+    """Insert a new tour record.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tour_type: Tour label.
+        tour_date: Tour date string.
+        start_time: Tour start time.
+        end_time: Tour end time.
+        location: Tour location.
+        ambassadors_needed: Required ambassador count.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    if not all([tour_type, tour_date, start_time, end_time, location]):
+        return False, "All tour fields are required."
+    if ambassadors_needed < 1 or ambassadors_needed > 10:
+        return False, "Ambassadors needed must stay within a reasonable range."
+    conn.execute(
+        "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 0)",
+        (tour_type, tour_date, start_time, end_time, location, ambassadors_needed),
+    )
+    conn.commit()
+    return True, "Tour created and ready for assignment."
+
+
+def assign_ambassador_to_tour(conn: sqlite3.Connection, tour_id: int, ambassador_id: int):
+    """Assign one ambassador to one tour.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tour_id: Tour record id.
+        ambassador_id: Ambassador user id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    if tour_id <= 0 or ambassador_id <= 0:
+        return False, "Select a valid tour and ambassador."
+
+    tour = conn.execute(
+        "SELECT id, tour_date, start_time, end_time, ambassadors_needed FROM tours WHERE id = ?",
+        (tour_id,),
+    ).fetchone()
+    if not tour:
+        return False, "Select a valid tour and ambassador."
+
+    ambassador = conn.execute(
+        "SELECT id, name FROM users WHERE id = ? AND role = 'ambassador'",
+        (ambassador_id,),
+    ).fetchone()
+    if not ambassador:
+        return False, "Select a valid tour and ambassador."
+
+    assigned_count = conn.execute(
+        "SELECT COUNT(*) FROM tour_assignments WHERE tour_id = ?",
+        (tour_id,),
+    ).fetchone()[0]
+    if assigned_count >= tour["ambassadors_needed"]:
+        return False, "This tour is already full."
+
+    exists = conn.execute(
+        "SELECT COUNT(*) FROM tour_assignments WHERE tour_id = ? AND ambassador_id = ?",
+        (tour_id, ambassador_id),
+    ).fetchone()[0]
+    if exists:
+        return False, "That ambassador is already assigned to this tour."
+
+    same_name_exists = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM tour_assignments
+        JOIN users ON users.id = tour_assignments.ambassador_id
+        WHERE tour_assignments.tour_id = ? AND users.name = ?
+        """,
+        (tour_id, ambassador["name"]),
+    ).fetchone()[0]
+    if same_name_exists:
+        return False, "A person with that name is already assigned to this tour."
+
+    slots = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT day, start_time, end_time, priority FROM availability_slots WHERE user_id = ?",
+            (ambassador_id,),
+        ).fetchall()
+    ]
+    day_name = datetime.strptime(tour["tour_date"], "%Y-%m-%d").strftime("%A")
+    availability_rank = _best_priority_for_tour(
+        slots,
+        day_name,
+        tour["start_time"],
+        tour["end_time"],
+    )
+    if availability_rank is None:
+        return False, "This ambassador is not available for that tour time."
+
+    conn.execute("INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)",
+                 (tour_id, ambassador_id))
+    conn.commit()
+    return True, "Ambassador assigned to the tour."
+
+
 def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, year: str):
+    """Create a new ambassador account.
+
+    Inputs:
+        conn: Open SQLite connection.
+        name: Display name.
+        email: Ambassador email address.
+        major: Selected major.
+        year: Undergraduate year.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if not name or not email or not major or not year:
         return False, "Name, email, major, and year are required."
+    current_count = conn.execute(
+        "SELECT COUNT(*) FROM users WHERE role = 'ambassador'"
+    ).fetchone()[0]
+    if current_count >= MAX_AMBASSADORS:
+        return False, f"Roster is capped at {MAX_AMBASSADORS} ambassadors."
     if "@" not in email or not email.endswith(".edu"):
-        return False, "Ambassador emails must include a valid .edu return address."
+        return False, "Ambassador emails must include a valid return address."
     if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
         return False, "Only one profile is allowed per ambassador email."
     conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'ENFP', 'Active', 'Fall 2024', 0)",
-        (name, email, major, year),
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
+        (name, email, major, year, str(date.today().year)),
     )
-    ambassador_id = conn.execute(
-        "SELECT id FROM users WHERE lower(email) = lower(?)",
-        (email,),
-    ).fetchone()[0]
-    _ensure_seed_availability(conn, ambassador_id)
     conn.commit()
     return True, "Ambassador added successfully."
 
 
 def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
+    """Delete an ambassador and related records.
+
+    Inputs:
+        conn: Open SQLite connection.
+        ambassador_id: Ambassador user id.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
     if ambassador_id <= 0:
         return False, "Select a valid ambassador."
+    conn.execute(
+        "DELETE FROM tour_assignments WHERE ambassador_id = ?", (ambassador_id,))
     conn.execute(
         "DELETE FROM availability_slots WHERE user_id = ?", (ambassador_id,))
     conn.execute("DELETE FROM notifications WHERE user_id = ?",
@@ -509,129 +830,408 @@ def delete_ambassador(conn: sqlite3.Connection, ambassador_id: int):
     return True, "Ambassador removed from the roster."
 
 
-def _ensure_user(conn: sqlite3.Connection, data: dict, role: str) -> int:
-    row = conn.execute(
-        "SELECT id FROM users WHERE lower(email) = lower(?)",
-        (data["email"],),
-    ).fetchone()
-    if row:
-        conn.execute(
-            "UPDATE users SET name = ?, role = ?, major = ?, minor = ?, year = ?, personality = ?, status = 'Active', ambassador_since = ?, tours_completed = ? WHERE id = ?",
-            (
-                data["name"],
-                role,
-                data.get("major", ""),
-                data.get("minor", ""),
-                data.get("year", ""),
-                data.get("personality", ""),
-                data.get("since", ""),
-                data.get("tours_completed", 0),
-                row[0],
-            ),
-        )
-        return row[0]
+def publish_tours(conn: sqlite3.Connection):
+    """Mark all tours as published.
 
-    cursor = conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed) VALUES (?, ?, '', ?, ?, ?, ?, ?, 'Active', ?, ?)",
-        (
-            data["name"],
-            data["email"],
-            role,
-            data.get("major", ""),
-            data.get("minor", ""),
-            data.get("year", ""),
-            data.get("personality", ""),
-            data.get("since", ""),
-            data.get("tours_completed", 0),
-        ),
-    )
-    return cursor.lastrowid
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    conn.execute("UPDATE tours SET published = 1")
+    conn.commit()
+    return True, "Tours published to ambassadors."
 
 
-def _ensure_notifications(conn: sqlite3.Connection, user_id: int) -> None:
-    count = conn.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ?",
-        (user_id,),
-    ).fetchone()[0]
-    if count:
-        return
-    notifications = [
-        (user_id, "Auto-generated daily tour schedule is live",
-         "Review your weekly assignments.", "success", "Today"),
-        (user_id, "Availability updates affect next refresh",
-         "Add time blocks in Weekly Availability to improve assignments.", "info", "Today"),
-        (user_id, "Friday staffing is the busiest",
-         "Morning and afternoon Friday tours need the largest teams.", "warning", "Today"),
+def auto_assign_daily_tours(conn: sqlite3.Connection):
+    """Automatically assign ambassadors to the fixed daily tours.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    _sync_fixed_daily_tours(conn)
+
+    conn.execute("DELETE FROM tour_assignments")
+
+    tours = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT id, tour_date, start_time, end_time, ambassadors_needed
+            FROM tours
+            WHERE tour_type = ?
+            ORDER BY tour_date, start_time
+            """,
+            (DAILY_TOUR_TYPE,),
+        ).fetchall()
     ]
-    conn.executemany(
-        "INSERT INTO notifications (user_id, title, detail, kind, age_label) VALUES (?, ?, ?, ?, ?)",
-        notifications,
-    )
+    ambassadors = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT id, name, total_hours FROM users WHERE role = 'ambassador' ORDER BY name"
+        ).fetchall()
+    ]
+    slots = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT user_id, day, start_time, end_time, priority FROM availability_slots"
+        ).fetchall()
+    ]
 
+    slots_by_user = {}
+    for slot in slots:
+        slots_by_user.setdefault(slot["user_id"], []).append(slot)
 
-def _ensure_seed_availability(conn: sqlite3.Connection, user_id: int) -> None:
-    count = conn.execute(
-        "SELECT COUNT(*) FROM availability_slots WHERE user_id = ?",
-        (user_id,),
-    ).fetchone()[0]
-    if count:
-        return
-    seed_slots = []
-    for day in VALID_DAYS:
-        seed_slots.append(
-            (user_id, day, "9:00 AM", "12:00 PM", "1st Priority", 1))
-        seed_slots.append(
-            (user_id, day, "1:00 PM", "4:00 PM", "2nd Priority", 1))
-    conn.executemany(
-        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, ?)",
-        seed_slots,
-    )
+    assigned_tours_by_user = {amb["id"]: 0 for amb in ambassadors}
+    assigned_days_by_user = {amb["id"]: set() for amb in ambassadors}
+    total_needed = 0
+    total_assigned = 0
+
+    for tour in tours:
+        tour_day = datetime.strptime(
+            tour["tour_date"], "%Y-%m-%d").strftime("%A")
+        candidates = []
+        selected_names = set()
+        for ambassador in ambassadors:
+            user_id = ambassador["id"]
+            name = ambassador["name"]
+            if tour_day in assigned_days_by_user[user_id]:
+                continue
+            if name in selected_names:
+                continue
+
+            best_priority = _best_priority_for_tour(
+                slots_by_user.get(user_id, []),
+                tour_day,
+                tour["start_time"],
+                tour["end_time"],
+            )
+            if best_priority is None:
+                continue
+
+            candidates.append(
+                (
+                    best_priority,
+                    assigned_tours_by_user[user_id],
+                    ambassador["total_hours"],
+                    name,
+                    user_id,
+                )
+            )
+
+        candidates.sort()
+        selected = candidates[: tour["ambassadors_needed"]]
+
+        for _, _, _, name, user_id in selected:
+            conn.execute(
+                "INSERT INTO tour_assignments (tour_id, ambassador_id) VALUES (?, ?)",
+                (tour["id"], user_id),
+            )
+            assigned_tours_by_user[user_id] += 1
+            assigned_days_by_user[user_id].add(tour_day)
+            selected_names.add(name)
+
+        total_needed += tour["ambassadors_needed"]
+        total_assigned += len(selected)
+
+    conn.commit()
+
+    unfilled = total_needed - total_assigned
+    if unfilled > 0:
+        return True, f"Auto-assignment complete. Assigned {total_assigned} of {total_needed} slots ({unfilled} unfilled)."
+    return True, f"Auto-assignment complete. Assigned all {total_needed} slots."
 
 
 def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:
+    """Load one user row for the requested role.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: User record id.
+        role: Expected role string.
+    Outputs:
+        User dictionary.
+    """
     row = conn.execute(
-        "SELECT * FROM users WHERE id = ? AND role = ?",
-        (user_id, role),
-    ).fetchone()
+        "SELECT * FROM users WHERE id = ? AND role = ?", (user_id, role)).fetchone()
     if not row:
         raise PermissionError
     return dict(row)
 
 
-def _build_availability_grid(slots: list[dict]) -> dict:
-    grid = {day: {time_label: "" for time_label in VALID_TIMES}
-            for day in VALID_DAYS}
+def _time_labels() -> list[str]:
+    """Return the display labels used in the weekly availability grid.
+
+    Inputs:
+        None.
+    Outputs:
+        Ordered list of time labels.
+    """
+    return ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
+
+
+def _ambassador_stats(assignments: list[dict]) -> dict:
+    """Summarize ambassador assignment data.
+
+    Inputs:
+        assignments: Assignment records for one ambassador.
+    Outputs:
+        Dictionary with totals, hours completed, and upcoming events.
+    """
+    today = date.today()
+    total_tours = len(assignments)
+    hours_completed = 0.0
+    upcoming_events = 0
+
+    for assignment in assignments:
+        hours_completed += _tour_duration_hours(assignment.get(
+            "start_time", ""), assignment.get("end_time", ""))
+        tour_date = assignment.get("tour_date", "")
+        if tour_date and tour_date >= today.isoformat():
+            upcoming_events += 1
+
+    hours_value = int(hours_completed) if hours_completed.is_integer(
+    ) else round(hours_completed, 1)
+    return {"total_tours": total_tours, "hours_completed": hours_value, "upcoming_events": upcoming_events}
+
+
+def _tour_duration_hours(start_time: str, end_time: str) -> float:
+    """Calculate tour duration in hours.
+
+    Inputs:
+        start_time: Start time string.
+        end_time: End time string.
+    Outputs:
+        Duration in hours as a float.
+    """
+    if not start_time or not end_time:
+        return 0.0
+    start = datetime.strptime(start_time, "%I:%M %p")
+    end = datetime.strptime(end_time, "%I:%M %p")
+    duration = end - start
+    return max(duration.total_seconds() / 3600, 0.0)
+
+
+def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
+    """Ensure this week has the required fixed daily tours.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        None.
+    """
+    monday = _week_monday(date.today())
+    week_key = monday.isoformat()
+    existing_key_row = conn.execute(
+        "SELECT value FROM app_meta WHERE key = 'daily_tour_week_key'"
+    ).fetchone()
+    existing_key = existing_key_row[0] if existing_key_row else ""
+
+    if existing_key == week_key:
+        return
+
+    conn.execute(
+        "DELETE FROM tour_assignments WHERE tour_id IN (SELECT id FROM tours WHERE tour_type = ?)",
+        (DAILY_TOUR_TYPE,),
+    )
+    conn.execute("DELETE FROM tours WHERE tour_type = ?", (DAILY_TOUR_TYPE,))
+
+    date_by_day = {
+        (monday + timedelta(days=offset)).strftime("%A"): (monday + timedelta(days=offset)).isoformat()
+        for offset in range(7)
+    }
+
+    tours = [
+        (
+            DAILY_TOUR_TYPE,
+            date_by_day[day],
+            start_time,
+            end_time,
+            DAILY_TOUR_LOCATION,
+            ambassadors_needed,
+            1,
+        )
+        for day, start_time, end_time, ambassadors_needed in DAILY_TOUR_SLOTS
+    ]
+    conn.executemany(
+        "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        tours,
+    )
+
+    conn.execute(
+        "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('daily_tour_week_key', ?)",
+        (week_key,),
+    )
+    conn.commit()
+
+
+def _normalize_ambassador_roster(conn: sqlite3.Connection, max_ambassadors: int) -> None:
+    """Limit the ambassador roster to the configured maximum.
+
+    Inputs:
+        conn: Open SQLite connection.
+        max_ambassadors: Maximum ambassador records allowed.
+    Outputs:
+        None.
+    """
+    count = conn.execute(
+        "SELECT COUNT(*) FROM users WHERE role = 'ambassador'"
+    ).fetchone()[0]
+    overflow = count - max_ambassadors
+    if overflow <= 0:
+        return
+
+    remove_rows = conn.execute(
+        "SELECT id FROM users WHERE role = 'ambassador' ORDER BY id DESC LIMIT ?",
+        (overflow,),
+    ).fetchall()
+    remove_ids = [row[0] for row in remove_rows]
+    if not remove_ids:
+        return
+
+    placeholders = ",".join(["?"] * len(remove_ids))
+    conn.execute(
+        f"DELETE FROM tour_assignments WHERE ambassador_id IN ({placeholders})",
+        tuple(remove_ids),
+    )
+    conn.execute(
+        f"DELETE FROM availability_slots WHERE user_id IN ({placeholders})",
+        tuple(remove_ids),
+    )
+    conn.execute(
+        f"DELETE FROM notifications WHERE user_id IN ({placeholders})",
+        tuple(remove_ids),
+    )
+    conn.execute(
+        f"DELETE FROM users WHERE id IN ({placeholders})",
+        tuple(remove_ids),
+    )
+    conn.commit()
+
+
+def _week_monday(anchor: date) -> date:
+    """Return the Monday date for the week containing anchor.
+
+    Inputs:
+        anchor: Any date.
+    Outputs:
+        Date of that week's Monday.
+    """
+    return anchor - timedelta(days=anchor.weekday())
+
+
+def _best_priority_for_tour(slots: list[dict], day: str, start_time: str, end_time: str):
+    """Return the best availability priority rank for a tour time.
+
+    Inputs:
+        slots: Ambassador availability slots.
+        day: Tour day name.
+        start_time: Tour start time.
+        end_time: Tour end time.
+    Outputs:
+        Lowest priority rank or None when unavailable.
+    """
+    tour_start = datetime.strptime(start_time, "%I:%M %p")
+    tour_end = datetime.strptime(end_time, "%I:%M %p")
+    ranks = []
+
     for slot in slots:
-        start_minutes = _time_to_minutes(slot["start_time"])
-        end_minutes = _time_to_minutes(slot["end_time"])
-        for time_label in VALID_TIMES:
-            minute_value = _time_to_minutes(time_label)
-            if start_minutes <= minute_value < end_minutes:
-                grid[slot["day"]][time_label] = slot["priority"]
-    return grid
-
-
-def _best_priority_for_slot(availability_rows: list[dict], day: str, slot_time: str):
-    target_minutes = _time_to_minutes(slot_time)
-    best_priority = None
-    for row in availability_rows:
-        if row["day"] != day:
+        if slot["day"] != day:
             continue
-        start_minutes = _time_to_minutes(row["start_time"])
-        end_minutes = _time_to_minutes(row["end_time"])
-        if start_minutes <= target_minutes < end_minutes:
-            if best_priority is None or PRIORITY_RANK[row["priority"]] < PRIORITY_RANK[best_priority]:
-                best_priority = row["priority"]
-    return best_priority
+        slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
+        slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
+        if slot_start <= tour_start and slot_end >= tour_end:
+            ranks.append(_priority_rank(slot))
+
+    if not ranks:
+        return None
+    return min(ranks)
 
 
-def _time_to_minutes(value: str) -> int:
-    time_part, meridiem = value.split(" ")
-    hour_string, minute_string = time_part.split(":")
-    hour = int(hour_string)
-    minute = int(minute_string)
-    if meridiem == "PM" and hour != 12:
-        hour += 12
-    if meridiem == "AM" and hour == 12:
-        hour = 0
-    return hour * 60 + minute
+def _build_weekly_schedule(conn: sqlite3.Connection) -> dict:
+    """Build a Monday-Friday schedule payload for the admin page.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Structured schedule data for 10 AM and 2 PM tables.
+    """
+    rows = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT tours.id, tours.tour_date, tours.start_time, tours.ambassadors_needed, users.name
+            FROM tours
+            LEFT JOIN tour_assignments ON tour_assignments.tour_id = tours.id
+            LEFT JOIN users ON users.id = tour_assignments.ambassador_id
+            WHERE tours.tour_type = ?
+            ORDER BY tours.tour_date, tours.start_time, users.name
+            """,
+            (DAILY_TOUR_TYPE,),
+        ).fetchall()
+    ]
+
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    schedule = {
+        "10:00 AM": {day: {"needed": 0, "names": []} for day in days},
+        "02:00 PM": {day: {"needed": 0, "names": []} for day in days},
+    }
+
+    for row in rows:
+        day = datetime.strptime(row["tour_date"], "%Y-%m-%d").strftime("%A")
+        time = row["start_time"]
+        if day not in days or time not in schedule:
+            continue
+        schedule[time][day]["needed"] = row["ambassadors_needed"]
+        if row["name"]:
+            schedule[time][day]["names"].append(row["name"])
+
+    for time in schedule:
+        for day in days:
+            needed = schedule[time][day]["needed"]
+            names = schedule[time][day]["names"]
+            remaining = max(needed - len(names), 0)
+            if remaining > 0:
+                names.extend(["GROUP - ROTATING"] * remaining)
+
+    return {
+        "days": days,
+        "morning": schedule["10:00 AM"],
+        "afternoon": schedule["02:00 PM"],
+    }
+
+
+def _priority_rank(slot: dict) -> int:
+    """Map a slot priority to a sort order.
+
+    Inputs:
+        slot: Availability slot record.
+    Outputs:
+        Numeric rank where lower means higher priority.
+    """
+    ranks = {
+        "1st Priority": 0,
+        "2nd Priority": 1,
+        "3rd Priority": 2,
+        "Low Priority": 3,
+    }
+    return ranks.get(slot.get("priority", ""), 99)
+
+
+def _priority_label_from_rank(rank: int) -> str:
+    """Convert a numeric priority rank into its display label.
+
+    Inputs:
+        rank: Priority rank from _priority_rank.
+    Outputs:
+        Display label used in the admin UI.
+    """
+    labels = {
+        0: "1st Priority",
+        1: "2nd Priority",
+        2: "3rd Priority",
+        3: "Low Priority",
+    }
+    return labels.get(rank, "Unknown")
