@@ -248,8 +248,8 @@ def _render_profile(context: dict) -> str:
                 {minor_picker}
                 <label>Year <span class=\"required\">*</span></label>
                 <select name=\"year\">{_options(context["years"], "", allow_blank_label="Select a year")}</select>
-                <label>Personality Type</label>
-                <select name=\"personality\">{_options(context["personalities"], "")}</select>
+                <label>TCU Involvement Level</label>
+                <select name=\"involvement_level\">{_options(context["involvement_levels"], "")}</select>
                 <div class=\"form-actions right\"><button class=\"primary\" type=\"submit\">Save Changes</button></div>
             </form>
         </div>

@@ -261,7 +261,7 @@ class SchedulingHandler(BaseHTTPRequestHandler):
             form.get("major", ""),
             form.get("minor", ""),
             form.get("year", ""),
-            form.get("personality", ""),
+            form.get("involvement_level", ""),
         )
         key = "message" if ok else "error"
         return f"/ambassador/profile?user={user_id}&role=ambassador&{key}=" + validation_message(message)

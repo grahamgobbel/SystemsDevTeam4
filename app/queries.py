@@ -15,6 +15,7 @@ VALID_DAYS = ["Monday", "Tuesday", "Wednesday",
 VALID_PRIORITIES = ["1st Priority",
                     "2nd Priority", "3rd Priority", "Low Priority"]
 VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
+INVOLVEMENT_LEVELS = ["High", "Medium", "Low"]
 MAJOR_GROUPS = [
     ("Neeley School of Business", [
         "Accounting",
@@ -406,7 +407,7 @@ def build_profile_page(conn: sqlite3.Connection, user_id: int, message: str = ""
         "major_groups": MAJOR_GROUPS,
         "minors": MINOR_OPTIONS,
         "years": VALID_YEARS,
-        "personalities": ["Introvert", "Ambivert", "Extrovert"],
+        "involvement_levels": INVOLVEMENT_LEVELS,
         "tours_completed": tours_completed,
     }
 
@@ -679,7 +680,7 @@ def clear_availability_slots(conn: sqlite3.Connection, user_id: int):
     return True, "All weekly availability slots were cleared."
 
 
-def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, personality: str):
+def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: str, year: str, involvement_level: str):
     """Update an ambassador profile.
 
     Inputs:
@@ -688,7 +689,7 @@ def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: st
         major: Selected major.
         minor: Selected minor.
         year: Undergraduate year.
-        personality: Personality type.
+        involvement_level: TCU involvement level.
     Outputs:
         Tuple of success flag and feedback message.
     """
@@ -696,9 +697,11 @@ def update_profile(conn: sqlite3.Connection, user_id: int, major: str, minor: st
         return False, "Major and year are required."
     if year not in VALID_YEARS:
         return False, "Choose a valid undergraduate year."
+    if involvement_level and involvement_level not in INVOLVEMENT_LEVELS:
+        return False, "Choose a valid TCU involvement level."
     conn.execute(
         "UPDATE users SET major = ?, minor = ?, year = ?, personality = ? WHERE id = ?",
-        (major, minor, year, personality, user_id),
+        (major, minor, year, involvement_level, user_id),
     )
     conn.commit()
     return True, "Profile changes saved."
@@ -830,7 +833,7 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
     if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
         return False, "Only one profile is allowed per ambassador email."
     conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'ENFP', 'Active', ?, 0, 0)",
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'Medium', 'Active', ?, 0, 0)",
         (name, email, major, year, str(date.today().year)),
     )
     conn.commit()
