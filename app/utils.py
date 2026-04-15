@@ -97,12 +97,12 @@ def _render_login(context: dict) -> str:
     <div class=\"login-card\">
         <div class=\"logo-badge\">TCU</div>
         <h1>Ambassador Scheduling</h1>
-        <p class=\"hero-copy\">Enter any email to continue into the matching dashboard</p>
+        <p class=\"hero-copy\">Enter any email or username to continue into the matching dashboard</p>
         {message}
         {error}
         <form method=\"post\" action=\"/login\" class=\"login-form\">
-            <label>Email Address <span class=\"required\">*</span></label>
-            <input type=\"email\" name=\"email\" placeholder=\"john.doe@tcu.edu\" required>
+            <label>Email or Username <span class=\"required\">*</span></label>
+            <input type=\"text\" name=\"email\" placeholder=\"john.doe@tcu.edu or johndoe\" required>
 
             <label>Select Role <span class=\"required\">*</span></label>
             <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"admin\" required> <span>Admin</span></label>
@@ -303,7 +303,7 @@ def _render_admin(context: dict) -> str:
             <div class=\"section-head\">
                 <div><h3>Pre-Scheduled Tours</h3><p>Available ambassadors appear by priority for each tour slot</p></div>
             </div>
-            <div class=\"stack\">{tours_markup}</div>
+            <div class=\"stack tour-stack\">{tours_markup}</div>
         </div>
         <div class=\"admin-section\">
             <div class=\"section-head\">
@@ -526,6 +526,20 @@ def _pretty_date(date_text: str) -> str:
         return date_text
 
 
+def _weekday_name(date_text: str) -> str:
+    """Format a YYYY-MM-DD date as its weekday name.
+
+    Inputs:
+        date_text: ISO-style date string.
+    Outputs:
+        Weekday label, or the original text if parsing fails.
+    """
+    try:
+        return datetime.strptime(date_text, "%Y-%m-%d").strftime("%A")
+    except ValueError:
+        return date_text
+
+
 def _assignment_card(item: dict) -> str:
     """Render one assignment card.
 
@@ -663,6 +677,7 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
         [f'<li>{escape(name)}</li>' for name in tour.get("assigned_names", [])]
     ) or "<li>No one assigned yet.</li>"
     status = "published" if tour["published"] else "draft"
+    day_label = _weekday_name(tour["tour_date"])
     time_label = _tour_time_label(tour["start_time"])
     remaining = tour.get("remaining_slots", 0)
     capacity_note = f"Assigned {tour['assigned_count']} of {tour['ambassadors_needed']} ambassadors"
@@ -671,7 +686,7 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
     available_markup = assign_forms if remaining > 0 and assign_forms else "<p class=\"muted\">No additional available ambassadors for this slot.</p>"
     return f"""
     <article class=\"tour-card\">
-        <div class=\"tour-card-head\"><div><h4>{escape(tour['tour_type'])}</h4><p>{_pretty_date(tour['tour_date'])} | {escape(time_label)} | {escape(tour['location'])}</p></div><span class=\"status-chip {status}\">{status}</span></div>
+        <div class=\"tour-card-head\"><div><h4>{escape(tour['tour_type'])}</h4><p>{escape(day_label)} | {escape(time_label)} | {escape(tour['location'])}</p></div><span class=\"status-chip {status}\">{status}</span></div>
         <p class=\"muted\">{capacity_note}</p>
         <div class=\"tour-card-columns\">
             <div>

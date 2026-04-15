@@ -98,6 +98,7 @@ select {
 }
 
 .login-form input[type="email"],
+.login-form input[type="text"],
 .login-form input[type="password"],
 .admin-form-grid input,
 .admin-form-grid select,
@@ -932,50 +933,62 @@ select {
 }
 
 .tour-card {
-    padding: 18px 20px;
+    padding: 12px 14px;
 }
 
 .tour-card+.tour-card {
-    margin-top: 16px;
+    margin-top: 0;
+}
+
+.tour-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .candidate-stack {
     display: grid;
-    gap: 10px;
-    margin-top: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .tour-card-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin-top: 8px;
+    gap: 12px;
+    margin-top: 4px;
 }
 
 .tour-card-columns h5 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.92rem;
 }
 
 .assigned-list {
-    margin: 10px 0 0;
+    margin: 6px 0 0;
     padding-left: 20px;
     color: var(--text);
+    font-size: 0.9rem;
 }
 
 .assigned-list li {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .candidate-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 8px 10px;
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 10px;
     background: #f9fbff;
+}
+
+.candidate-card strong {
+    font-size: 0.88rem;
+    line-height: 1.2;
 }
 
 .candidate-card.first {
@@ -999,20 +1012,26 @@ select {
 }
 
 .candidate-card p {
-    margin: 4px 0;
+    margin: 2px 0;
     color: var(--muted);
-    font-size: 0.92rem;
+    font-size: 0.77rem;
+    line-height: 1.2;
 }
 
 .priority-chip {
     display: inline-block;
-    margin-top: 4px;
-    padding: 4px 10px;
+    margin-top: 2px;
+    padding: 2px 8px;
     border-radius: 999px;
     background: #f5f6fa;
     color: #5b677e;
     font-weight: 700;
-    font-size: 0.82rem;
+    font-size: 0.7rem;
+}
+
+.candidate-card .secondary.small {
+    padding: 6px 10px;
+    font-size: 0.78rem;
 }
 
 .priority-chip.first {
@@ -1090,6 +1109,12 @@ select {
     .left-rail {
         border-right: 0;
         border-bottom: 1px solid var(--line);
+    }
+
+    .tour-stack,
+    .candidate-stack,
+    .tour-card-columns {
+        grid-template-columns: 1fr;
     }
 }
 

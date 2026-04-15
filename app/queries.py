@@ -145,23 +145,27 @@ MINOR_OPTIONS = [
 DAILY_TOUR_TYPE = "Daily Tour"
 DAILY_TOUR_LOCATION = "Admissions Office"
 MAX_AMBASSADORS = 85
+MAX_ELIGIBLE_PER_TOUR = 10
 SAMPLE_STUDENT_SPECS = [
     ("Ava Thompson", "Marketing", "Psychology", "Freshman", "High"),
     ("Liam Carter", "Finance", "Data Analytics", "Sophomore", "Medium"),
     ("Sophia Nguyen", "Biology", "Chemistry", "Junior", "High"),
     ("Noah Bennett", "Computer Science", "Mathematics", "Senior", "Low"),
-    ("Isabella Flores", "Fashion Merchandising", "Business Analytics", "Sophomore", "High"),
+    ("Isabella Flores", "Fashion Merchandising",
+     "Business Analytics", "Sophomore", "High"),
     ("Ethan Brooks", "Accounting", "Information Systems", "Junior", "Medium"),
     ("Mia Patel", "Nursing", "Public Health", "Freshman", "Low"),
     ("Jackson Reed", "Economics", "Political Science", "Senior", "High"),
     ("Chloe Sanders", "Communication Studies", "Digital Media", "Junior", "Medium"),
     ("Lucas Kim", "Engineering", "Physics", "Sophomore", "Low"),
     ("Harper Collins", "English", "Creative Writing", "Senior", "High"),
-    ("Aiden Murphy", "Supply Chain Management", "International Business", "Freshman", "Medium"),
+    ("Aiden Murphy", "Supply Chain Management",
+     "International Business", "Freshman", "Medium"),
     ("Ella Ramirez", "Education", "Spanish & Hispanic Studies", "Junior", "Low"),
     ("Mason Hughes", "Real Estate", "Finance", "Sophomore", "High"),
     ("Lily Foster", "Psychology", "Sociology", "Senior", "Medium"),
-    ("Caleb Ward", "Business Information Systems", "Data Analytics", "Junior", "High"),
+    ("Caleb Ward", "Business Information Systems",
+     "Data Analytics", "Junior", "High"),
     ("Grace Kim", "Biochemistry", "Biology", "Sophomore", "Medium"),
     ("Dylan Price", "Political Science", "History", "Freshman", "Low"),
     ("Natalie Cruz", "Strategic Communication", "Marketing", "Senior", "High"),
@@ -177,20 +181,26 @@ SAMPLE_STUDENT_SPECS = [
     ("Olivia Green", "Dance", "Theatre", "Sophomore", "High"),
     ("Andrew Cooper", "Computer Science", "Data Analytics", "Freshman", "Low"),
     ("Claire Watson", "Religion", "Philosophy", "Senior", "Medium"),
-    ("Zachary Long", "Supply Chain Management", "Business Analytics", "Junior", "High"),
-    ("Paige Bennett", "Speech-Language Pathology", "Kinesiology", "Sophomore", "Medium"),
+    ("Zachary Long", "Supply Chain Management",
+     "Business Analytics", "Junior", "High"),
+    ("Paige Bennett", "Speech-Language Pathology",
+     "Kinesiology", "Sophomore", "Medium"),
     ("Brandon Ross", "Engineering", "Mathematics", "Freshman", "Low"),
     ("Sydney Howard", "Journalism", "English", "Senior", "High"),
-    ("Kevin Nguyen", "Data Science / Digital Culture & Data Analytics", "Computer Science", "Junior", "Medium"),
-    ("Lauren Price", "Early Childhood Education", "Educational Studies", "Sophomore", "High"),
+    ("Kevin Nguyen", "Data Science / Digital Culture & Data Analytics",
+     "Computer Science", "Junior", "Medium"),
+    ("Lauren Price", "Early Childhood Education",
+     "Educational Studies", "Sophomore", "High"),
     ("Trevor Hall", "Economics", "Finance", "Freshman", "Low"),
     ("Julia Brooks", "Theatre", "Creative Writing", "Senior", "Medium"),
     ("Cameron White", "Actuarial Science", "Mathematics", "Junior", "High"),
-    ("Megan Kelly", "Environmental Science & Sustainability", "Environmental Science", "Sophomore", "Medium"),
+    ("Megan Kelly", "Environmental Science & Sustainability",
+     "Environmental Science", "Sophomore", "Medium"),
     ("Austin Gray", "Accounting", "Finance", "Freshman", "Low"),
     ("Rachel Adams", "Spanish & Hispanic Studies", "Sociology", "Senior", "High"),
     ("Eric Foster", "Geology", "Environmental Science", "Junior", "Medium"),
-    ("Sarah Bell", "Anthropology", "Comparative Race & Ethnic Studies", "Sophomore", "High"),
+    ("Sarah Bell", "Anthropology",
+     "Comparative Race & Ethnic Studies", "Sophomore", "High"),
     ("Justin Parker", "Marketing", "Entrepreneurship", "Freshman", "Medium"),
     ("Emily Reed", "Nursing", "Nutritional Sciences", "Senior", "Low"),
     ("Dylan Hayes", "Management", "Political Science", "Junior", "High"),
@@ -205,20 +215,24 @@ SAMPLE_STUDENT_SPECS = [
     ("Lily Nguyen", "Fashion Merchandising", "Design", "Sophomore", "Medium"),
     ("Matthew Davis", "Engineering", "Computer Science", "Freshman", "Low"),
     ("Sophia Green", "Creative Writing", "English", "Senior", "High"),
-    ("Tyler Brooks", "Supply Chain Management", "Business Analytics", "Junior", "Medium"),
+    ("Tyler Brooks", "Supply Chain Management",
+     "Business Analytics", "Junior", "Medium"),
     ("Emma Collins", "Biology", "Chemistry", "Sophomore", "High"),
     ("Jack Wilson", "Economics", "Data Analytics", "Freshman", "Medium"),
     ("Grace Turner", "Education", "Youth Advocacy", "Senior", "Low"),
-    ("Alex Kim", "Data Science / Digital Culture & Data Analytics", "Mathematics", "Junior", "High"),
+    ("Alex Kim", "Data Science / Digital Culture & Data Analytics",
+     "Mathematics", "Junior", "High"),
     ("Natalie White", "Journalism", "Political Science", "Sophomore", "Medium"),
     ("Ryan Adams", "Accounting", "Finance", "Freshman", "Low"),
     ("Chloe Hall", "Interior Design", "Design", "Senior", "High"),
     ("Ethan Parker", "Computer Science", "Data Analytics", "Junior", "Medium"),
     ("Madison Scott", "Nursing", "Kinesiology", "Sophomore", "High"),
     ("Logan Reed", "Military Science", "History", "Freshman", "Low"),
-    ("Bella Martinez", "Spanish & Hispanic Studies", "Latinx Studies", "Senior", "High"),
+    ("Bella Martinez", "Spanish & Hispanic Studies",
+     "Latinx Studies", "Senior", "High"),
     ("Carter Hughes", "Management", "Entrepreneurship", "Junior", "Medium"),
-    ("Savannah Price", "Environmental Earth Resources", "Environmental Science", "Sophomore", "High"),
+    ("Savannah Price", "Environmental Earth Resources",
+     "Environmental Science", "Sophomore", "High"),
     ("Noah Gray", "Mathematics", "Actuarial Science", "Freshman", "Low"),
     ("Hailey Foster", "Communication Studies", "Sociology", "Senior", "Medium"),
     ("Ben Cooper", "Finance", "Business Analytics", "Junior", "High"),
@@ -401,7 +415,34 @@ def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
             ).fetchone()
         return dict(row)
 
+    display_name = _name_from_email(normalized_email)
+    conn.execute(
+        """
+        INSERT INTO users (
+            name, email, password, role, major, minor, year, personality, status,
+            ambassador_since, tours_completed, total_hours
+        ) VALUES (?, ?, '', ?, NULL, NULL, NULL, 'Medium', 'Active', ?, 0, 0)
+        """,
+        (display_name, normalized_email, normalized_role, str(date.today().year)),
+    )
+    conn.commit()
+    new_row = conn.execute(
+        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
+        (normalized_email,),
+    ).fetchone()
+    return dict(new_row) if new_row else None
+
     return None
+
+
+def _name_from_email(email: str) -> str:
+    """Build a readable display name from an email address."""
+    local_part = email.split("@", 1)[0].strip() or "Ambassador"
+    pieces = [chunk for chunk in local_part.replace(
+        "_", ".").replace("-", ".").split(".") if chunk]
+    if not pieces:
+        return "Ambassador"
+    return " ".join(piece.capitalize() for piece in pieces)
 
 
 def build_ambassador_dashboard(conn: sqlite3.Connection, user_id: int) -> dict:
@@ -546,11 +587,20 @@ def build_admin_dashboard(
             LEFT JOIN tour_assignments ON tour_assignments.tour_id = tours.id
             WHERE tours.tour_type = ?
             GROUP BY tours.id
-            ORDER BY tours.tour_date
+                ORDER BY tours.tour_date,
+                            CASE tours.start_time
+                                WHEN '10:00 AM' THEN 0
+                                WHEN '02:00 PM' THEN 1
+                                ELSE 2
+                            END
             """,
             (DAILY_TOUR_TYPE,),
         ).fetchall()
     ]
+
+    # Defensive cap: admin view should never surface more than the
+    # 10 fixed semester scheduling cards.
+    tours = tours[:10]
 
     normalized_tour_status = tour_status if tour_status in {
         "all", "published", "draft", "assigned", "unassigned"
@@ -631,7 +681,7 @@ def build_admin_dashboard(
 
         eligible.sort(key=lambda row: (
             row["priority_rank"], row["total_hours"], row["name"]))
-        tour["eligible"] = eligible
+        tour["eligible"] = eligible[:MAX_ELIGIBLE_PER_TOUR]
         tour["assigned_names"] = [person["name"] for person in assigned_people]
         tour["remaining_slots"] = max(
             tour["ambassadors_needed"] - tour["assigned_count"], 0)
@@ -976,7 +1026,12 @@ def auto_assign_daily_tours(conn: sqlite3.Connection):
             SELECT id, tour_date, start_time, end_time, ambassadors_needed
             FROM tours
             WHERE tour_type = ?
-            ORDER BY tour_date, start_time
+                ORDER BY tour_date,
+                            CASE start_time
+                                WHEN '10:00 AM' THEN 0
+                                WHEN '02:00 PM' THEN 1
+                                ELSE 2
+                            END
             """,
             (DAILY_TOUR_TYPE,),
         ).fetchall()
@@ -1162,7 +1217,8 @@ def seed_sample_student_database(conn: sqlite3.Connection):
             """,
             (name, email, major, minor, year, involvement, str(date.today().year)),
         )
-        inserted_users.append((conn.execute("SELECT last_insert_rowid()").fetchone()[0], involvement))
+        inserted_users.append(
+            (conn.execute("SELECT last_insert_rowid()").fetchone()[0], involvement))
 
     slot_templates = [
         ("Monday", "10:00 AM", "11:00 AM"),
@@ -1184,7 +1240,8 @@ def seed_sample_student_database(conn: sqlite3.Connection):
             "Medium": 6,
             "Low": 4,
         }.get(involvement, 5)
-        slot_count = max(2, min(len(slot_templates), base_count + rng.choice([-1, 0, 1])))
+        slot_count = max(2, min(len(slot_templates),
+                         base_count + rng.choice([-1, 0, 1])))
         selected_slots = rng.sample(slot_templates, slot_count)
         for day, start_time, end_time in selected_slots:
             rows_to_insert.append(
@@ -1304,55 +1361,105 @@ def _tour_duration_hours(start_time: str, end_time: str) -> float:
 
 
 def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
-    """Ensure this week has the required fixed daily tours.
+    """Ensure exactly 10 fixed daily tours remain stable for the semester.
 
     Inputs:
         conn: Open SQLite connection.
     Outputs:
         None.
     """
-    monday = _week_monday(date.today())
-    week_key = monday.isoformat()
-    existing_key_row = conn.execute(
-        "SELECT value FROM app_meta WHERE key = 'daily_tour_week_key'"
+    anchor_row = conn.execute(
+        "SELECT value FROM app_meta WHERE key = 'daily_tour_anchor_monday'"
     ).fetchone()
-    existing_key = existing_key_row[0] if existing_key_row else ""
-
-    if existing_key == week_key:
-        return
-
-    conn.execute(
-        "DELETE FROM tour_assignments WHERE tour_id IN (SELECT id FROM tours WHERE tour_type = ?)",
-        (DAILY_TOUR_TYPE,),
-    )
-    conn.execute("DELETE FROM tours WHERE tour_type = ?", (DAILY_TOUR_TYPE,))
+    if anchor_row and anchor_row[0]:
+        anchor_monday = datetime.strptime(anchor_row[0], "%Y-%m-%d").date()
+    else:
+        anchor_monday = _week_monday(date.today())
+        conn.execute(
+            "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('daily_tour_anchor_monday', ?)",
+            (anchor_monday.isoformat(),),
+        )
 
     date_by_day = {
-        (monday + timedelta(days=offset)).strftime("%A"): (monday + timedelta(days=offset)).isoformat()
+        (anchor_monday + timedelta(days=offset)).strftime("%A"): (anchor_monday + timedelta(days=offset)).isoformat()
         for offset in range(7)
     }
-
-    tours = [
+    expected_by_key = {
         (
-            DAILY_TOUR_TYPE,
             date_by_day[day],
             start_time,
             end_time,
-            DAILY_TOUR_LOCATION,
-            ambassadors_needed,
-            1,
-        )
+        ): {
+            "tour_date": date_by_day[day],
+            "start_time": start_time,
+            "end_time": end_time,
+            "ambassadors_needed": ambassadors_needed,
+        }
         for day, start_time, end_time, ambassadors_needed in DAILY_TOUR_SLOTS
-    ]
-    conn.executemany(
-        "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        tours,
-    )
+    }
 
-    conn.execute(
-        "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('daily_tour_week_key', ?)",
-        (week_key,),
-    )
+    existing = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT id, tour_date, start_time, end_time, ambassadors_needed
+            FROM tours
+            WHERE tour_type = ?
+            ORDER BY id
+            """,
+            (DAILY_TOUR_TYPE,),
+        ).fetchall()
+    ]
+
+    seen_keys: set[tuple[str, str, str]] = set()
+    keep_ids: set[int] = set()
+    remove_ids: list[int] = []
+    for row in existing:
+        key = (row["tour_date"], row["start_time"], row["end_time"])
+        if key not in expected_by_key or key in seen_keys:
+            remove_ids.append(row["id"])
+            continue
+        seen_keys.add(key)
+        keep_ids.add(row["id"])
+        expected = expected_by_key[key]
+        if row["ambassadors_needed"] != expected["ambassadors_needed"]:
+            conn.execute(
+                "UPDATE tours SET ambassadors_needed = ?, location = ?, published = 1 WHERE id = ?",
+                (expected["ambassadors_needed"],
+                 DAILY_TOUR_LOCATION, row["id"]),
+            )
+        else:
+            conn.execute(
+                "UPDATE tours SET location = ?, published = 1 WHERE id = ?",
+                (DAILY_TOUR_LOCATION, row["id"]),
+            )
+
+    if remove_ids:
+        placeholders = ",".join(["?"] * len(remove_ids))
+        conn.execute(
+            f"DELETE FROM tour_assignments WHERE tour_id IN ({placeholders})",
+            tuple(remove_ids),
+        )
+        conn.execute(
+            f"DELETE FROM tours WHERE id IN ({placeholders})",
+            tuple(remove_ids),
+        )
+
+    for key, expected in expected_by_key.items():
+        if key in seen_keys:
+            continue
+        conn.execute(
+            "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 1)",
+            (
+                DAILY_TOUR_TYPE,
+                expected["tour_date"],
+                expected["start_time"],
+                expected["end_time"],
+                DAILY_TOUR_LOCATION,
+                expected["ambassadors_needed"],
+            ),
+        )
+
     conn.commit()
 
 
