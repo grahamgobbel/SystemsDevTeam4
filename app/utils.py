@@ -530,11 +530,12 @@ def _assignment_card(item: dict) -> str:
         HTML for the assignment card.
     """
     status_class = "confirmed" if item["status"] == "confirmed" else "pending"
+    time_label = _tour_time_label(item["start_time"])
     return f"""
     <article class=\"assignment-card\">
         <div class=\"assignment-head\"><h3>{escape(item['tour_type'])}</h3><span class=\"status-chip {status_class}\">{escape(item['status'])}</span></div>
         <p class=\"muted\">{escape(item['location'])}</p>
-        <div class=\"assignment-meta\"><span>{_pretty_date(item['tour_date'])}</span><span>{escape(item['start_time'])} to {escape(item['end_time'])}</span></div>
+        <div class=\"assignment-meta\"><span>{_pretty_date(item['tour_date'])}</span><span>{escape(time_label)}</span></div>
     </article>
     """
 
@@ -657,6 +658,7 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
         [f'<li>{escape(name)}</li>' for name in tour.get("assigned_names", [])]
     ) or "<li>No one assigned yet.</li>"
     status = "published" if tour["published"] else "draft"
+    time_label = _tour_time_label(tour["start_time"])
     remaining = tour.get("remaining_slots", 0)
     capacity_note = f"Assigned {tour['assigned_count']} of {tour['ambassadors_needed']} ambassadors"
     if remaining == 0:
@@ -664,7 +666,7 @@ def _tour_card(tour: dict, admin_user_id: int) -> str:
     available_markup = assign_forms if remaining > 0 and assign_forms else "<p class=\"muted\">No additional available ambassadors for this slot.</p>"
     return f"""
     <article class=\"tour-card\">
-        <div class=\"tour-card-head\"><div><h4>{escape(tour['tour_type'])}</h4><p>{_pretty_date(tour['tour_date'])} | {escape(tour['start_time'])} to {escape(tour['end_time'])} | {escape(tour['location'])}</p></div><span class=\"status-chip {status}\">{status}</span></div>
+        <div class=\"tour-card-head\"><div><h4>{escape(tour['tour_type'])}</h4><p>{_pretty_date(tour['tour_date'])} | {escape(time_label)} | {escape(tour['location'])}</p></div><span class=\"status-chip {status}\">{status}</span></div>
         <p class=\"muted\">{capacity_note}</p>
         <div class=\"tour-card-columns\">
             <div>
@@ -837,6 +839,20 @@ def _slot_for_day_and_time(slots: list[dict], day: str, time_label: str):
     if not matching_slots:
         return None
     return min(matching_slots, key=_priority_rank)
+
+
+def _tour_time_label(start_time: str) -> str:
+    """Convert a stored start time into a compact slot label.
+
+    Inputs:
+        start_time: Stored time text such as "10:00 AM".
+    Outputs:
+        Compact label like "10am" or "2pm".
+    """
+    try:
+        return datetime.strptime(start_time, "%I:%M %p").strftime("%I%p").lstrip("0").lower()
+    except ValueError:
+        return start_time
 
 
 def _slot_overlaps_hour(slot: dict, hour_start: datetime, hour_end: datetime) -> bool:
