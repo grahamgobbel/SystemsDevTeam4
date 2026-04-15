@@ -6,6 +6,7 @@ Purpose: Provide database setup, query helpers, validation, and dashboard
 data shaping for the scheduling application.
 """
 
+import random
 import sqlite3
 from datetime import date, datetime, timedelta
 
@@ -144,6 +145,86 @@ MINOR_OPTIONS = [
 DAILY_TOUR_TYPE = "Daily Tour"
 DAILY_TOUR_LOCATION = "Admissions Office"
 MAX_AMBASSADORS = 85
+SAMPLE_STUDENT_SPECS = [
+    ("Ava Thompson", "Marketing", "Psychology", "Freshman", "High"),
+    ("Liam Carter", "Finance", "Data Analytics", "Sophomore", "Medium"),
+    ("Sophia Nguyen", "Biology", "Chemistry", "Junior", "High"),
+    ("Noah Bennett", "Computer Science", "Mathematics", "Senior", "Low"),
+    ("Isabella Flores", "Fashion Merchandising", "Business Analytics", "Sophomore", "High"),
+    ("Ethan Brooks", "Accounting", "Information Systems", "Junior", "Medium"),
+    ("Mia Patel", "Nursing", "Public Health", "Freshman", "Low"),
+    ("Jackson Reed", "Economics", "Political Science", "Senior", "High"),
+    ("Chloe Sanders", "Communication Studies", "Digital Media", "Junior", "Medium"),
+    ("Lucas Kim", "Engineering", "Physics", "Sophomore", "Low"),
+    ("Harper Collins", "English", "Creative Writing", "Senior", "High"),
+    ("Aiden Murphy", "Supply Chain Management", "International Business", "Freshman", "Medium"),
+    ("Ella Ramirez", "Education", "Spanish & Hispanic Studies", "Junior", "Low"),
+    ("Mason Hughes", "Real Estate", "Finance", "Sophomore", "High"),
+    ("Lily Foster", "Psychology", "Sociology", "Senior", "Medium"),
+    ("Caleb Ward", "Business Information Systems", "Data Analytics", "Junior", "High"),
+    ("Grace Kim", "Biochemistry", "Biology", "Sophomore", "Medium"),
+    ("Dylan Price", "Political Science", "History", "Freshman", "Low"),
+    ("Natalie Cruz", "Strategic Communication", "Marketing", "Senior", "High"),
+    ("Owen Hayes", "Mathematics", "Computer Science", "Junior", "Medium"),
+    ("Brooke Simmons", "Interior Design", "Studio Art", "Sophomore", "High"),
+    ("Connor Blake", "Management", "Entrepreneurship", "Freshman", "Medium"),
+    ("Zoe Patel", "Nutritional Sciences", "Kinesiology", "Senior", "Low"),
+    ("Ryan Mitchell", "Physics", "Mathematics", "Junior", "High"),
+    ("Madison Lee", "Graphic Design", "Design", "Sophomore", "Medium"),
+    ("Tyler Scott", "Military Science", "Political Science", "Freshman", "Low"),
+    ("Hannah Davis", "Sociology", "Women & Gender Studies", "Senior", "High"),
+    ("Jake Turner", "Finance", "Economics", "Junior", "Medium"),
+    ("Olivia Green", "Dance", "Theatre", "Sophomore", "High"),
+    ("Andrew Cooper", "Computer Science", "Data Analytics", "Freshman", "Low"),
+    ("Claire Watson", "Religion", "Philosophy", "Senior", "Medium"),
+    ("Zachary Long", "Supply Chain Management", "Business Analytics", "Junior", "High"),
+    ("Paige Bennett", "Speech-Language Pathology", "Kinesiology", "Sophomore", "Medium"),
+    ("Brandon Ross", "Engineering", "Mathematics", "Freshman", "Low"),
+    ("Sydney Howard", "Journalism", "English", "Senior", "High"),
+    ("Kevin Nguyen", "Data Science / Digital Culture & Data Analytics", "Computer Science", "Junior", "Medium"),
+    ("Lauren Price", "Early Childhood Education", "Educational Studies", "Sophomore", "High"),
+    ("Trevor Hall", "Economics", "Finance", "Freshman", "Low"),
+    ("Julia Brooks", "Theatre", "Creative Writing", "Senior", "Medium"),
+    ("Cameron White", "Actuarial Science", "Mathematics", "Junior", "High"),
+    ("Megan Kelly", "Environmental Science & Sustainability", "Environmental Science", "Sophomore", "Medium"),
+    ("Austin Gray", "Accounting", "Finance", "Freshman", "Low"),
+    ("Rachel Adams", "Spanish & Hispanic Studies", "Sociology", "Senior", "High"),
+    ("Eric Foster", "Geology", "Environmental Science", "Junior", "Medium"),
+    ("Sarah Bell", "Anthropology", "Comparative Race & Ethnic Studies", "Sophomore", "High"),
+    ("Justin Parker", "Marketing", "Entrepreneurship", "Freshman", "Medium"),
+    ("Emily Reed", "Nursing", "Nutritional Sciences", "Senior", "Low"),
+    ("Dylan Hayes", "Management", "Political Science", "Junior", "High"),
+    ("Katie Long", "Art History", "Studio Art", "Sophomore", "Medium"),
+    ("Sean Murphy", "Computer Science", "Mathematics", "Freshman", "Low"),
+    ("Abigail Turner", "Women & Gender Studies", "Sociology", "Senior", "High"),
+    ("Luke Sanders", "Physics", "Astronomy", "Junior", "Medium"),
+    ("Vanessa Cruz", "Strategic Communication", "Marketing", "Sophomore", "High"),
+    ("Cole Bennett", "Ranch Management", "Business", "Freshman", "Low"),
+    ("Brianna Scott", "Kinesiology", "Athletic Training", "Senior", "Medium"),
+    ("Jordan Price", "Finance", "Accounting", "Junior", "High"),
+    ("Lily Nguyen", "Fashion Merchandising", "Design", "Sophomore", "Medium"),
+    ("Matthew Davis", "Engineering", "Computer Science", "Freshman", "Low"),
+    ("Sophia Green", "Creative Writing", "English", "Senior", "High"),
+    ("Tyler Brooks", "Supply Chain Management", "Business Analytics", "Junior", "Medium"),
+    ("Emma Collins", "Biology", "Chemistry", "Sophomore", "High"),
+    ("Jack Wilson", "Economics", "Data Analytics", "Freshman", "Medium"),
+    ("Grace Turner", "Education", "Youth Advocacy", "Senior", "Low"),
+    ("Alex Kim", "Data Science / Digital Culture & Data Analytics", "Mathematics", "Junior", "High"),
+    ("Natalie White", "Journalism", "Political Science", "Sophomore", "Medium"),
+    ("Ryan Adams", "Accounting", "Finance", "Freshman", "Low"),
+    ("Chloe Hall", "Interior Design", "Design", "Senior", "High"),
+    ("Ethan Parker", "Computer Science", "Data Analytics", "Junior", "Medium"),
+    ("Madison Scott", "Nursing", "Kinesiology", "Sophomore", "High"),
+    ("Logan Reed", "Military Science", "History", "Freshman", "Low"),
+    ("Bella Martinez", "Spanish & Hispanic Studies", "Latinx Studies", "Senior", "High"),
+    ("Carter Hughes", "Management", "Entrepreneurship", "Junior", "Medium"),
+    ("Savannah Price", "Environmental Earth Resources", "Environmental Science", "Sophomore", "High"),
+    ("Noah Gray", "Mathematics", "Actuarial Science", "Freshman", "Low"),
+    ("Hailey Foster", "Communication Studies", "Sociology", "Senior", "Medium"),
+    ("Ben Cooper", "Finance", "Business Analytics", "Junior", "High"),
+    ("Kayla Watson", "Theatre", "Dance", "Sophomore", "Medium"),
+    ("Mason Kelly", "Engineering", "Physics", "Freshman", "Low"),
+]
 DAILY_TOUR_SLOTS = [
     ("Monday", "10:00 AM", "11:00 AM", 7),
     ("Tuesday", "10:00 AM", "11:00 AM", 7),
@@ -1029,6 +1110,127 @@ def seed_test_availability(conn: sqlite3.Connection):
     )
     conn.commit()
     return True, f"Test availability generated for {len(ambassadors)} ambassadors."
+
+
+def seed_sample_student_database(conn: sqlite3.Connection):
+    """Replace ambassador records with the sample student roster and schedules.
+
+    Inputs:
+        conn: Open SQLite connection.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    if len(SAMPLE_STUDENT_SPECS) > MAX_AMBASSADORS:
+        return False, f"Sample roster exceeds cap of {MAX_AMBASSADORS} ambassadors."
+
+    ambassador_rows = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT id FROM users WHERE role = 'ambassador'"
+        ).fetchall()
+    ]
+    ambassador_ids = [row["id"] for row in ambassador_rows]
+    if ambassador_ids:
+        placeholders = ",".join(["?"] * len(ambassador_ids))
+        conn.execute(
+            f"DELETE FROM tour_assignments WHERE ambassador_id IN ({placeholders})",
+            tuple(ambassador_ids),
+        )
+        conn.execute(
+            f"DELETE FROM availability_slots WHERE user_id IN ({placeholders})",
+            tuple(ambassador_ids),
+        )
+        conn.execute(
+            f"DELETE FROM notifications WHERE user_id IN ({placeholders})",
+            tuple(ambassador_ids),
+        )
+        conn.execute(
+            f"DELETE FROM users WHERE id IN ({placeholders})",
+            tuple(ambassador_ids),
+        )
+
+    used_emails: set[str] = set()
+    inserted_users: list[tuple[int, str]] = []
+    for name, major, minor, year, involvement in SAMPLE_STUDENT_SPECS:
+        email = _build_unique_email(name, used_emails)
+        conn.execute(
+            """
+            INSERT INTO users (
+                name, email, password, role, major, minor, year, personality, status,
+                ambassador_since, tours_completed, total_hours
+            ) VALUES (?, ?, '', 'ambassador', ?, ?, ?, ?, 'Active', ?, 0, 0)
+            """,
+            (name, email, major, minor, year, involvement, str(date.today().year)),
+        )
+        inserted_users.append((conn.execute("SELECT last_insert_rowid()").fetchone()[0], involvement))
+
+    slot_templates = [
+        ("Monday", "10:00 AM", "11:00 AM"),
+        ("Monday", "02:00 PM", "03:00 PM"),
+        ("Tuesday", "10:00 AM", "11:00 AM"),
+        ("Tuesday", "02:00 PM", "03:00 PM"),
+        ("Wednesday", "10:00 AM", "11:00 AM"),
+        ("Wednesday", "02:00 PM", "03:00 PM"),
+        ("Thursday", "10:00 AM", "11:00 AM"),
+        ("Thursday", "02:00 PM", "03:00 PM"),
+        ("Friday", "10:00 AM", "11:00 AM"),
+        ("Friday", "02:00 PM", "03:00 PM"),
+    ]
+    rows_to_insert = []
+    for user_id, involvement in inserted_users:
+        rng = random.Random(user_id * 97)
+        base_count = {
+            "High": 8,
+            "Medium": 6,
+            "Low": 4,
+        }.get(involvement, 5)
+        slot_count = max(2, min(len(slot_templates), base_count + rng.choice([-1, 0, 1])))
+        selected_slots = rng.sample(slot_templates, slot_count)
+        for day, start_time, end_time in selected_slots:
+            rows_to_insert.append(
+                (
+                    user_id,
+                    day,
+                    start_time,
+                    end_time,
+                    _random_priority_for_involvement(rng, involvement),
+                    1,
+                )
+            )
+
+    conn.executemany(
+        "INSERT INTO availability_slots (user_id, day, start_time, end_time, priority, submitted) VALUES (?, ?, ?, ?, ?, ?)",
+        rows_to_insert,
+    )
+    _sync_fixed_daily_tours(conn)
+    conn.commit()
+    return True, f"Sample student database created with {len(SAMPLE_STUDENT_SPECS)} ambassadors and {len(rows_to_insert)} weekly availability slots."
+
+
+def _build_unique_email(name: str, used_emails: set[str]) -> str:
+    """Generate unique TCU email addresses from full names."""
+    parts = [part.lower() for part in name.split() if part]
+    if not parts:
+        parts = ["student"]
+    base = f"{parts[0]}.{parts[-1]}"
+    candidate = f"{base}@tcu.edu"
+    suffix = 2
+    while candidate in used_emails:
+        candidate = f"{base}{suffix}@tcu.edu"
+        suffix += 1
+    used_emails.add(candidate)
+    return candidate
+
+
+def _random_priority_for_involvement(rng: random.Random, involvement: str) -> str:
+    """Pick a realistic priority level based on involvement."""
+    if involvement == "High":
+        weights = [0.45, 0.30, 0.20, 0.05]
+    elif involvement == "Medium":
+        weights = [0.25, 0.35, 0.25, 0.15]
+    else:
+        weights = [0.10, 0.25, 0.35, 0.30]
+    return rng.choices(VALID_PRIORITIES, weights=weights, k=1)[0]
 
 
 def _get_user(conn: sqlite3.Connection, user_id: int, role: str) -> dict:

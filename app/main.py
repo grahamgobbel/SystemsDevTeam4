@@ -27,6 +27,7 @@ from queries import (
     delete_ambassador,
     initialize_database,
     lookup_user,
+    seed_sample_student_database,
     update_profile,
 )
 from utils import redirect_response, render_page, send_html, validation_message
@@ -281,6 +282,10 @@ class SchedulingHandler(BaseHTTPRequestHandler):
 
         if action == "auto_assign_daily_tours":
             ok, message = auto_assign_daily_tours(conn)
+            return base + ("&message=" if ok else "&error=") + validation_message(message)
+
+        if action == "seed_sample_student_database":
+            ok, message = seed_sample_student_database(conn)
             return base + ("&message=" if ok else "&error=") + validation_message(message)
 
         if action == "assign_tour":
