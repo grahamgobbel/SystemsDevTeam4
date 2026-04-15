@@ -272,8 +272,6 @@ def _render_admin(context: dict) -> str:
     tours_markup = "".join(_tour_card(
         item, user['id']) for item in context["tours"])
     weekly_schedule = context["weekly_schedule"]
-    ambassadors_markup = "".join(_ambassador_row(
-        item, user['id']) for item in context["ambassadors"])
     report_rows = "".join([
         f'<tr><td>{escape(row["name"])}</td><td>{escape(row["email"])}</td><td>{escape(row.get("major") or "-")}</td><td>{escape(row.get("year") or "-")}</td><td>{row["assigned_tours"]}</td><td>{row["total_hours"]}</td></tr>'
         for row in report["rows"]
@@ -300,27 +298,7 @@ def _render_admin(context: dict) -> str:
             <div class=\"section-head\">
                 <div><h3>Pre-Scheduled Tours</h3><p>Available ambassadors appear by priority for each tour slot</p></div>
             </div>
-            <form method="post" action="/admin" class="footer-actions">
-                <input type="hidden" name="user" value="{user['id']}">
-                <input type="hidden" name="action" value="seed_test_availability">
-                <button class="secondary" type="submit">Generate Test Availability + Priorities</button>
-            </form>
             <div class=\"stack\">{tours_markup}</div>
-        </div>
-        <div class=\"admin-section\">
-            <div class=\"section-head\">
-                <div><h3>Ambassador Management</h3><p>Add, remove, and manage ambassador accounts</p></div>
-            </div>
-            <form method=\"post\" action=\"/admin\" class=\"admin-form-grid\">
-                <input type=\"hidden\" name=\"user\" value=\"{user['id']}\">
-                <input type=\"hidden\" name=\"action\" value=\"add_ambassador\">
-                <input name=\"name\" placeholder=\"Full Name\">
-                <input name=\"email\" placeholder=\"name@tcu.edu\">
-                <input name=\"major\" placeholder=\"Major\">
-                <select name=\"year\">{_options(["Freshman", "Sophomore", "Junior", "Senior"], "", allow_blank_label="Year")}</select>
-                <button class=\"primary\" type=\"submit\">Add Ambassador</button>
-            </form>
-            <div class=\"stack\">{ambassadors_markup}</div>
         </div>
         <div class=\"admin-section\">
             <div class=\"section-head\">
