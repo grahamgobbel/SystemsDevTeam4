@@ -200,7 +200,6 @@ def _render_availability(context: dict) -> str:
             <p><b>Preference Rankings:</b> Rank your eagerness to work each time slot (1st, 2nd, 3rd priority, or Low priority).</p>
             <p><b>Dashboard View:</b> See your complete availability schedule at a glance.</p>
         </div>
-        <div class=\"purple-banner\"><span class=\"rotate-icon\">?</span><div><span>Weekly Slots</span><strong>{context['slot_count']}</strong></div></div>
         {tabs}
         {main_panel}
     </section>
@@ -320,7 +319,7 @@ def _render_admin(context: dict) -> str:
                 {_metric_card('Avg Assigned Tours',
                               report['avg_assigned'], 'purple')}
                 {_metric_card('Max Assigned Tours',
-                              report['max_assigned'], 'green')}
+                                  report['max_assigned'], 'green')}
             </div>
             <div class=\"report-table-wrap\">
                 <table class=\"report-table\">
