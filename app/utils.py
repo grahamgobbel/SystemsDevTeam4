@@ -309,13 +309,6 @@ def _render_admin(context: dict) -> str:
             <div class=\"section-head\">
                 <div><h3>Ambassador Workload Report</h3><p>Generated on {escape(report['generated_on'])} from current records</p></div>
             </div>
-            <div class=\"metric-grid\">
-                {_metric_card('Rows', report['total_rows'], 'blue')}
-                {_metric_card('Avg Assigned Tours',
-                              report['avg_assigned'], 'purple')}
-                {_metric_card('Max Assigned Tours',
-                                  report['max_assigned'], 'green')}
-            </div>
             <div class=\"report-table-wrap\">
                 <table class=\"report-table\">
                     <thead>
@@ -477,7 +470,7 @@ def _top_nav(user: dict, active: str, role: str) -> str:
             f'<a class="top-link {"active" if active == "availability" else ""}" href="/ambassador/availability?user={user["id"]}&role=ambassador&view=dashboard">Availability</a>',
             f'<a class="top-link {"active" if active == "profile" else ""}" href="/ambassador/profile?user={user["id"]}&role=ambassador">Profile</a>'
         ])
-    return f'<div class="top-left"><div class="frog-mark">TCU</div>{center}</div><div class="top-right"><span>Help</span><a class="logout-link" href="/">Logout</a></div>'
+    return f'<div class="top-left"><div class="frog-mark">TCU</div>{center}</div><div class="top-right"><a class="logout-link" href="/">Logout</a></div>'
 
 
 def _side_nav(user: dict, active: str, role: str) -> str:
