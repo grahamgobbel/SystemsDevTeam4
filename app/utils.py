@@ -293,11 +293,6 @@ def _render_admin(context: dict) -> str:
             {_metric_card('Unassigned Tours', stat['unassigned'], 'gold')}
         </div>
         <div class=\"info-panel\"><strong>Tour Management</strong><p>Daily tours are pre-scheduled for Monday through Friday at 10:00 AM and 2:00 PM. For each tour, add ambassadors from the available list until the tour is full.</p></div>
-        <form method="post" action="/admin" class="footer-actions">
-            <input type="hidden" name="user" value="{user['id']}">
-            <input type="hidden" name="action" value="seed_sample_student_database">
-            <button class="secondary" type="submit">Load Sample Student Database + Random Schedules</button>
-        </form>
         <div class=\"admin-section\">
             <div class=\"section-head\">
                 <div><h3>Pre-Scheduled Tours</h3><p>Available ambassadors appear by priority for each tour slot</p></div>
