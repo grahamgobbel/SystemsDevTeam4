@@ -231,7 +231,6 @@ def _render_profile(context: dict) -> str:
         {_flash(context.get('error', ''), 'error')}
         <div class=\"profile-grid\">
             <div class=\"profile-card\">
-                <div class=\"avatar-circle\">?</div>
                 <h3>{escape(user['name'])}</h3>
                 <p>{escape(user['email'])}</p>
                 <div class=\"profile-stats\">
@@ -287,7 +286,8 @@ def _render_admin(context: dict) -> str:
         {_flash(context.get('message', ''), 'success')}
         {_flash(context.get('error', ''), 'error')}
         <div class="metric-grid compact-metrics">
-            {_metric_card('Total Ambassadors', stat['total_ambassadors'], 'purple')}
+            {_metric_card('Total Ambassadors',
+                          stat['total_ambassadors'], 'purple')}
             {_metric_card('Scheduled Tours', stat['scheduled'], 'blue')}
             {_metric_card('Assigned Tours', stat['assigned'], 'green')}
             {_metric_card('Tours In Progress', stat['in_progress'], 'blue')}
@@ -317,8 +317,10 @@ def _render_admin(context: dict) -> str:
             </div>
             <div class=\"metric-grid\">
                 {_metric_card('Rows', report['total_rows'], 'blue')}
-                {_metric_card('Avg Assigned Tours', report['avg_assigned'], 'purple')}
-                {_metric_card('Max Assigned Tours', report['max_assigned'], 'green')}
+                {_metric_card('Avg Assigned Tours',
+                              report['avg_assigned'], 'purple')}
+                {_metric_card('Max Assigned Tours',
+                              report['max_assigned'], 'green')}
             </div>
             <div class=\"report-table-wrap\">
                 <table class=\"report-table\">
@@ -793,7 +795,6 @@ def _major_picker(groups: list[tuple[str, list[str]]]) -> str:
             f'''
             <div class="dropdown-group">
                 <div class="dropdown-group-label">{escape(group_label)}</div>
-                <div class="dropdown-group-options">{option_buttons}</div>
             </div>
             '''
         )
