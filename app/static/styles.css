@@ -936,27 +936,49 @@ select {
     padding: 12px 14px;
 }
 
+.tour-card,
+.tour-card-head,
+.tour-card-columns > div,
+.candidate-card {
+    min-width: 0;
+}
+
 .tour-card+.tour-card {
     margin-top: 0;
 }
 
 .tour-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 12px;
 }
 
 .candidate-stack {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 8px;
     margin-top: 8px;
 }
 
 .tour-card-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: 12px;
     margin-top: 4px;
+}
+
+.tour-card-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.tour-card-head p,
+.tour-card h4,
+.tour-card h5,
+.candidate-card strong,
+.candidate-card p,
+.assigned-list li {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .tour-card-columns h5 {
@@ -984,6 +1006,15 @@ select {
     border: 1px solid var(--line);
     border-radius: 10px;
     background: #f9fbff;
+}
+
+.candidate-card > div {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.candidate-card button {
+    flex-shrink: 0;
 }
 
 .candidate-card strong {
