@@ -22,7 +22,7 @@ def validation_message(message: str) -> str:
     return quote_plus(message)
 
 
-def redirect_response(handler, location: str) -> None:
+def redirect_response(handler, location: str, headers: dict | None = None) -> None:
     """Send a redirect response.
 
     Inputs:
@@ -33,6 +33,9 @@ def redirect_response(handler, location: str) -> None:
     """
     handler.send_response(303)
     handler.send_header("Location", location)
+    if headers:
+        for key, value in headers.items():
+            handler.send_header(key, value)
     handler.end_headers()
 
 
@@ -64,6 +67,8 @@ def render_page(page: str, context: dict) -> str:
     """
     if page == "login":
         return _render_login(context)
+    if page == "register":
+        return _render_register(context)
     if page == "ambassador_dashboard":
         return _render_ambassador_dashboard(context)
     if page == "availability":
@@ -97,20 +102,70 @@ def _render_login(context: dict) -> str:
     <div class=\"login-card\">
         <div class=\"logo-badge\">TCU</div>
         <h1>Ambassador Scheduling</h1>
-        <p class=\"hero-copy\">Enter any email or username to continue into the matching dashboard</p>
+        <p class=\"hero-copy\">Sign in with your TCU email and password</p>
         {message}
         {error}
         <form method=\"post\" action=\"/login\" class=\"login-form\">
-            <label>Email or Username <span class=\"required\">*</span></label>
-            <input type=\"text\" name=\"email\" placeholder=\"john.doe@tcu.edu or johndoe\" required>
+            <label>Email <span class=\"required\">*</span></label>
+            <input type=\"email\" name=\"email\" placeholder=\"john.doe@tcu.edu\" required>
 
-            <label>Select Role <span class=\"required\">*</span></label>
-            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"admin\" required> <span>Admin</span></label>
-            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"ambassador\" required> <span>Ambassador</span></label>
+            <label>Password <span class=\"required\">*</span></label>
+            <input type=\"password\" name=\"password\" placeholder=\"Enter password\" required>
 
             <button class=\"primary large\" type=\"submit\">Login</button>
         </form>
-        <p class=\"field-help\">Login is open for development use. Credentials are not enforced right now.</p>
+        <a href="/register" class="create-account-link">Create Account</a>
+        <p class=\"field-help\">Use your assigned account credentials to continue.</p>
+    </div>
+</body>
+</html>"""
+
+
+def _render_register(context: dict) -> str:
+    """Render the create-account page.
+
+    Inputs:
+        context: Registration page state including message and error text.
+    Outputs:
+        HTML for the registration screen.
+    """
+    error = _flash(context.get("error", ""), "error")
+    message = _flash(context.get("message", ""), "success")
+    return f"""<!doctype html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"utf-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <title>Create Account | TCU Ambassador Scheduling</title>
+    <link rel=\"stylesheet\" href=\"/static/styles.css\">
+</head>
+<body class=\"login-body\">
+    <div class=\"login-card\">
+        <div class=\"logo-badge\">TCU</div>
+        <h1>Create Account</h1>
+        <p class=\"hero-copy\">Set up your account using your school email.</p>
+        {message}
+        {error}
+        <form method=\"post\" action=\"/register\" class=\"login-form\">
+            <label>Full Name <span class=\"required\">*</span></label>
+            <input type=\"text\" name=\"name\" placeholder=\"Jane Doe\" required>
+
+            <label>Email <span class=\"required\">*</span></label>
+            <input type=\"email\" name=\"email\" placeholder=\"jane.doe@tcu.edu\" required>
+
+            <label>Account Role <span class=\"required\">*</span></label>
+            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"ambassador\" required> <span>Ambassador</span></label>
+            <label class=\"radio-card\"><input type=\"radio\" name=\"role\" value=\"admin\" required> <span>Admin</span></label>
+
+            <label>Password <span class=\"required\">*</span></label>
+            <input type=\"password\" name=\"password\" placeholder=\"At least 8 characters\" required>
+
+            <label>Confirm Password <span class=\"required\">*</span></label>
+            <input type=\"password\" name=\"confirm_password\" placeholder=\"Re-enter password\" required>
+
+            <button class=\"primary large\" type=\"submit\">Create Account</button>
+        </form>
+        <p class=\"field-help\"><a href=\"/\">Back to Login</a></p>
     </div>
 </body>
 </html>"""
@@ -137,7 +192,7 @@ def _render_ambassador_dashboard(context: dict) -> str:
                 <h1>Welcome, {escape(user['name'])}!</h1>
                 <p>Here's your schedule overview and latest updates</p>
             </div>
-            <a class=\"green-button\" href=\"/ambassador/availability?user={user['id']}&role=ambassador&view=weekly\">Submit Availability</a>
+                <a class=\"green-button\" href=\"/ambassador/availability?view=weekly\">Submit Availability</a>
         </div>
 
         <div class=\"two-column\">
@@ -176,8 +231,8 @@ def _render_availability(context: dict) -> str:
     view = context["view"]
     tabs = f"""
     <div class=\"availability-tabs\">
-        <a class=\"tab-pill {'active' if view == 'dashboard' else ''}\" href=\"/ambassador/availability?user={user['id']}&role=ambassador&view=dashboard\">Dashboard</a>
-        <a class=\"tab-pill {'active' if view == 'weekly' else ''}\" href=\"/ambassador/availability?user={user['id']}&role=ambassador&view=weekly\">Weekly Availability</a>
+        <a class=\"tab-pill {'active' if view == 'dashboard' else ''}\" href=\"/ambassador/availability?view=dashboard\">Dashboard</a>
+        <a class=\"tab-pill {'active' if view == 'weekly' else ''}\" href=\"/ambassador/availability?view=weekly\">Weekly Availability</a>
     </div>
     """
     if view == "dashboard":
@@ -463,14 +518,14 @@ def _top_nav(user: dict, active: str, role: str) -> str:
         HTML for the top navigation.
     """
     if role == "admin":
-        center = f'<a class="top-link {"active" if active == "admin" else ""}" href="/admin?user={user["id"]}&role=admin">Admin Dashboard</a>'
+        center = f'<a class="top-link {"active" if active == "admin" else ""}" href="/admin">Admin Dashboard</a>'
     else:
         center = "".join([
-            f'<a class="top-link {"active" if active == "home" else ""}" href="/ambassador/dashboard?user={user["id"]}&role=ambassador">Home</a>',
-            f'<a class="top-link {"active" if active == "availability" else ""}" href="/ambassador/availability?user={user["id"]}&role=ambassador&view=dashboard">Availability</a>',
-            f'<a class="top-link {"active" if active == "profile" else ""}" href="/ambassador/profile?user={user["id"]}&role=ambassador">Profile</a>'
+            f'<a class="top-link {"active" if active == "home" else ""}" href="/ambassador/dashboard">Home</a>',
+            f'<a class="top-link {"active" if active == "availability" else ""}" href="/ambassador/availability?view=dashboard">Availability</a>',
+            f'<a class="top-link {"active" if active == "profile" else ""}" href="/ambassador/profile">Profile</a>'
         ])
-    return f'<div class="top-left"><div class="frog-mark">TCU</div>{center}</div><div class="top-right"><a class="logout-link" href="/">Logout</a></div>'
+    return f'<div class="top-left"><div class="frog-mark">TCU</div>{center}</div><div class="top-right"><a class="logout-link" href="/logout">Logout</a></div>'
 
 
 def _side_nav(user: dict, active: str, role: str) -> str:
@@ -486,15 +541,15 @@ def _side_nav(user: dict, active: str, role: str) -> str:
     items = []
     if role == "admin":
         items.append(
-            ("Admin Dashboard", f"/admin?user={user['id']}&role=admin", active == "admin"))
+            ("Admin Dashboard", "/admin", active == "admin"))
     else:
         items.extend([
             ("Dashboard",
-             f"/ambassador/dashboard?user={user['id']}&role=ambassador", active == "home"),
+             "/ambassador/dashboard", active == "home"),
             ("Submit Availability",
-             f"/ambassador/availability?user={user['id']}&role=ambassador&view=weekly", active == "availability"),
+             "/ambassador/availability?view=weekly", active == "availability"),
             ("Profile Settings",
-             f"/ambassador/profile?user={user['id']}&role=ambassador", active == "profile"),
+             "/ambassador/profile", active == "profile"),
         ])
     links = "".join(
         [f'<a class="quick-link {"active" if is_active else ""}" href="{href}">{label}</a>' for label, href, is_active in items])

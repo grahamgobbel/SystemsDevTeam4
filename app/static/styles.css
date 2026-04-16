@@ -270,6 +270,31 @@ select {
     margin-top: 18px;
 }
 
+.create-account-link {
+    display: block;
+    margin-top: 18px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: var(--purple-soft);
+    color: white;
+    text-align: center;
+    font-weight: 600;
+    transition: 0.2s ease;
+    border: 2px solid var(--purple-soft);
+}
+
+.create-account-link:hover {
+    background: var(--purple);
+    border-color: var(--purple);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(86, 42, 136, 0.25);
+}
+
+.create-account-link:focus-visible {
+    outline: 2px solid var(--purple-dark);
+    outline-offset: 2px;
+}
+
 .demo-box {
     margin-top: 18px;
     background: #f6f2fb;

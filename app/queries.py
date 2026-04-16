@@ -6,8 +6,12 @@ Purpose: Provide database setup, query helpers, validation, and dashboard
 data shaping for the scheduling application.
 """
 
+import hashlib
+import hmac
 import random
+import secrets
 import sqlite3
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -147,6 +151,8 @@ DAILY_TOUR_TYPE = "Daily Tour"
 DAILY_TOUR_LOCATION = "Admissions Office"
 MAX_AMBASSADORS = 85
 MAX_ELIGIBLE_PER_TOUR = 10
+DEFAULT_DEMO_PASSWORD = "tcu12345"
+PASSWORD_ITERATIONS = 120000
 SAMPLE_STUDENT_SQL_PATH = Path(__file__).resolve(
 ).parent.parent / "sql" / "sample_student_database.sql"
 DAILY_TOUR_SLOTS = [
@@ -233,6 +239,15 @@ def initialize_database(conn: sqlite3.Connection) -> None:
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token_hash TEXT NOT NULL UNIQUE,
+            user_id INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         """
     )
     conn.commit()
@@ -257,24 +272,27 @@ def initialize_database(conn: sqlite3.Connection) -> None:
     if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
         _sync_fixed_daily_tours(conn)
         _normalize_ambassador_roster(conn, MAX_AMBASSADORS)
+        _ensure_password_hashes(conn)
+        _clear_expired_sessions(conn)
         return
 
+    default_hash = _hash_password(DEFAULT_DEMO_PASSWORD)
     users = [
-        ("Admin Dashboard", "admin@tcu.edu", "", "admin",
+        ("Admin Dashboard", "admin@tcu.edu", default_hash, "admin",
          None, None, None, None, "Active", None, 0, 0),
-        ("Ambassador User", "graham.gobbel@tcu.edu", "", "ambassador",
+        ("Ambassador User", "graham.gobbel@tcu.edu", default_hash, "ambassador",
          "Computer Science", "Business", "Junior", "ENFP", "Active", "Fall 2024", 47, 24),
-        ("Emily Johnson", "emily.johnson@tcu.edu", "", "ambassador", "Marketing",
+        ("Emily Johnson", "emily.johnson@tcu.edu", default_hash, "ambassador", "Marketing",
          "Spanish", "Junior", "ENFJ", "Active", "Fall 2023", 31, 24),
-        ("Michael Chen", "michael.chen@tcu.edu", "", "ambassador", "Finance",
+        ("Michael Chen", "michael.chen@tcu.edu", default_hash, "ambassador", "Finance",
          "Data Science", "Senior", "INTJ", "Active", "Fall 2022", 42, 30),
-        ("Sarah Williams", "sarah.williams@tcu.edu", "", "ambassador", "Business Information Systems",
+        ("Sarah Williams", "sarah.williams@tcu.edu", default_hash, "ambassador", "Business Information Systems",
          "Psychology", "Sophomore", "INFJ", "Active", "Fall 2024", 18, 16),
-        ("David Martinez", "david.martinez@tcu.edu", "", "ambassador", "Accounting",
+        ("David Martinez", "david.martinez@tcu.edu", default_hash, "ambassador", "Accounting",
          "Economics", "Junior", "ENTP", "Active", "Spring 2024", 22, 20),
-        ("Jessica Brown", "jessica.brown@tcu.edu", "", "ambassador", "Strategic Communication",
+        ("Jessica Brown", "jessica.brown@tcu.edu", default_hash, "ambassador", "Strategic Communication",
          "Journalism", "Senior", "ESFJ", "Active", "Fall 2022", 39, 18),
-        ("James Wilson", "james.wilson@tcu.edu", "", "ambassador",
+        ("James Wilson", "james.wilson@tcu.edu", default_hash, "ambassador",
          "Management", "Music", "Junior", "ISFP", "Active", "Fall 2023", 27, 22)
     ]
     conn.executemany(
@@ -291,58 +309,211 @@ def initialize_database(conn: sqlite3.Connection) -> None:
 
     _sync_fixed_daily_tours(conn)
     _normalize_ambassador_roster(conn, MAX_AMBASSADORS)
+    _ensure_password_hashes(conn)
+    _clear_expired_sessions(conn)
 
 
-def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str):
-    """Find or create a user record based on email and role.
+def lookup_user(conn: sqlite3.Connection, email: str, password: str, role: str = ""):
+    """Authenticate a user record by email and password.
 
     Inputs:
         conn: Open SQLite connection.
         email: User-provided email address.
-        password: Unused placeholder kept for interface compatibility.
-        role: Requested account role.
+        password: Raw password input.
+        role: Optional role filter.
     Outputs:
-        A dictionary with user details, or None when email is empty.
+        A dictionary with user details when credentials are valid, else None.
     """
-    normalized_email = email.strip()
-    if not normalized_email:
+    normalized_email = email.strip().lower()
+    if not normalized_email or not password:
         return None
 
-    normalized_role = role if role in {"admin", "ambassador"} else "ambassador"
     row = conn.execute(
-        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
+        "SELECT id, name, email, role, password FROM users WHERE lower(email) = lower(?)",
         (normalized_email,),
     ).fetchone()
+    if not row:
+        return None
 
-    if row:
-        if row["role"] != normalized_role:
-            conn.execute("UPDATE users SET role = ? WHERE id = ?",
-                         (normalized_role, row["id"]))
-            conn.commit()
-            row = conn.execute(
-                "SELECT id, name, email, role FROM users WHERE id = ?",
-                (row["id"],),
-            ).fetchone()
-        return dict(row)
+    if role and row["role"] != role:
+        return None
 
-    display_name = _name_from_email(normalized_email)
+    if not _verify_password(password, row["password"]):
+        return None
+
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "email": row["email"],
+        "role": row["role"],
+    }
+
+
+def create_account(
+    conn: sqlite3.Connection,
+    name: str,
+    email: str,
+    password: str,
+    confirm_password: str,
+    role: str = "ambassador",
+):
+    """Create a new user account with hashed password storage.
+
+    Inputs:
+        conn: Open SQLite connection.
+        name: Display name.
+        email: Login email.
+        password: Raw password input.
+        confirm_password: Confirmation password input.
+        role: Requested role.
+    Outputs:
+        Tuple of success flag and feedback message.
+    """
+    clean_name = (name or "").strip()
+    clean_email = (email or "").strip().lower()
+    clean_role = role if role in {"admin", "ambassador"} else "ambassador"
+
+    if not clean_name:
+        return False, "Enter your full name to create an account."
+    if not clean_email or "@" not in clean_email:
+        return False, "Enter a valid email address."
+    if not clean_email.endswith(".edu"):
+        return False, "Use a school .edu email address for account creation."
+    if len(password or "") < 8:
+        return False, "Password must be at least 8 characters long."
+    if password != confirm_password:
+        return False, "Password and confirmation do not match."
+    if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (clean_email,)).fetchone()[0]:
+        return False, "An account with that email already exists."
+
     conn.execute(
         """
         INSERT INTO users (
-            name, email, password, role, major, minor, year, personality, status,
-            ambassador_since, tours_completed, total_hours
-        ) VALUES (?, ?, '', ?, NULL, NULL, NULL, 'Medium', 'Active', ?, 0, 0)
+            name, email, password, role, major, minor, year, personality,
+            status, ambassador_since, tours_completed, total_hours
+        ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 'Medium', 'Active', ?, 0, 0)
         """,
-        (display_name, normalized_email, normalized_role, str(date.today().year)),
+        (clean_name, clean_email, _hash_password(password), clean_role, str(date.today().year)),
     )
     conn.commit()
-    new_row = conn.execute(
-        "SELECT id, name, email, role FROM users WHERE lower(email) = lower(?)",
-        (normalized_email,),
-    ).fetchone()
-    return dict(new_row) if new_row else None
+    return True, "Account created successfully. Please sign in."
 
-    return None
+
+def create_session(conn: sqlite3.Connection, user_id: int, ttl_seconds: int = 60 * 60 * 8) -> str:
+    """Create a signed-in session for the user and return raw token.
+
+    Inputs:
+        conn: Open SQLite connection.
+        user_id: Authenticated user id.
+        ttl_seconds: Session duration in seconds.
+    Outputs:
+        Raw session token for cookie storage.
+    """
+    _clear_expired_sessions(conn)
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = _sha256_hex(raw_token)
+    now_epoch = int(time.time())
+    expires_at = now_epoch + ttl_seconds
+    conn.execute(
+        "INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+        (token_hash, user_id, expires_at, now_epoch),
+    )
+    conn.commit()
+    return raw_token
+
+
+def get_user_by_session_token(conn: sqlite3.Connection, token: str):
+    """Resolve a session token to an active user record.
+
+    Inputs:
+        conn: Open SQLite connection.
+        token: Raw token from cookie.
+    Outputs:
+        User dictionary when session is valid, else None.
+    """
+    if not token:
+        return None
+    token_hash = _sha256_hex(token)
+    now_epoch = int(time.time())
+    row = conn.execute(
+        """
+        SELECT users.id, users.name, users.email, users.role
+        FROM sessions
+        JOIN users ON users.id = sessions.user_id
+        WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+        """,
+        (token_hash, now_epoch),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def delete_session(conn: sqlite3.Connection, token: str) -> None:
+    """Delete a session token if present."""
+    if not token:
+        return
+    token_hash = _sha256_hex(token)
+    conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
+    conn.commit()
+
+
+def _clear_expired_sessions(conn: sqlite3.Connection) -> None:
+    """Remove all sessions that are already expired."""
+    conn.execute("DELETE FROM sessions WHERE expires_at <= ?",
+                 (int(time.time()),))
+    conn.commit()
+
+
+def _hash_password(password: str) -> str:
+    """Return a salted PBKDF2 hash string for storage."""
+    salt = secrets.token_hex(16)
+    derived = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        bytes.fromhex(salt),
+        PASSWORD_ITERATIONS,
+    )
+    return f"pbkdf2_sha256${PASSWORD_ITERATIONS}${salt}${derived.hex()}"
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Verify plain password against stored hash string."""
+    if not stored_hash:
+        return False
+    try:
+        scheme, iterations, salt, expected = stored_hash.split("$", 3)
+        if scheme != "pbkdf2_sha256":
+            return False
+        derived = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            bytes.fromhex(salt),
+            int(iterations),
+        ).hex()
+        return hmac.compare_digest(derived, expected)
+    except (ValueError, TypeError):
+        return False
+
+
+def _sha256_hex(value: str) -> str:
+    """Return lowercase sha256 hex for deterministic token storage."""
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _ensure_password_hashes(conn: sqlite3.Connection) -> None:
+    """Backfill any blank/plain passwords with the demo credential hash."""
+    rows = [
+        dict(row)
+        for row in conn.execute("SELECT id, password FROM users").fetchall()
+    ]
+    updates = []
+    for row in rows:
+        stored = row.get("password") or ""
+        if stored.startswith("pbkdf2_sha256$"):
+            continue
+        updates.append((_hash_password(DEFAULT_DEMO_PASSWORD), row["id"]))
+    if updates:
+        conn.executemany("UPDATE users SET password = ? WHERE id = ?", updates)
+        conn.commit()
 
 
 def _name_from_email(email: str) -> str:
@@ -874,8 +1045,9 @@ def add_ambassador(conn: sqlite3.Connection, name: str, email: str, major: str, 
     if conn.execute("SELECT COUNT(*) FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()[0]:
         return False, "Only one profile is allowed per ambassador email."
     conn.execute(
-        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, '', 'ambassador', ?, '', ?, 'Medium', 'Active', ?, 0, 0)",
-        (name, email, major, year, str(date.today().year)),
+        "INSERT INTO users (name, email, password, role, major, minor, year, personality, status, ambassador_since, tours_completed, total_hours) VALUES (?, ?, ?, 'ambassador', ?, '', ?, 'Medium', 'Active', ?, 0, 0)",
+        (name, email, _hash_password(DEFAULT_DEMO_PASSWORD),
+         major, year, str(date.today().year)),
     )
     conn.commit()
     return True, "Ambassador added successfully."
@@ -1133,9 +1305,10 @@ def seed_sample_student_database(conn: sqlite3.Connection):
             INSERT INTO users (
                 name, email, password, role, major, minor, year, personality, status,
                 ambassador_since, tours_completed, total_hours
-            ) VALUES (?, ?, '', 'ambassador', ?, ?, ?, ?, 'Active', ?, 0, 0)
+            ) VALUES (?, ?, ?, 'ambassador', ?, ?, ?, ?, 'Active', ?, 0, 0)
             """,
-            (name, email, major, minor, year, involvement, str(date.today().year)),
+            (name, email, _hash_password(DEFAULT_DEMO_PASSWORD),
+             major, minor, year, involvement, str(date.today().year)),
         )
         inserted_users.append(
             (conn.execute("SELECT last_insert_rowid()").fetchone()[0], involvement))
