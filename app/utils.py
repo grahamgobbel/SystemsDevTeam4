@@ -782,6 +782,7 @@ def _major_picker(groups: list[tuple[str, list[str]]]) -> str:
             f'''
             <div class="dropdown-group">
                 <div class="dropdown-group-label">{escape(group_label)}</div>
+                <div class="dropdown-group-options">{option_buttons}</div>
             </div>
             '''
         )
