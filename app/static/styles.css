@@ -52,27 +52,27 @@ select {
     box-shadow: var(--shadow);
 }
 
-.logo-badge,
-.frog-mark {
+.logo-badge {
     width: 64px;
     height: 40px;
     border-radius: 12px;
-    color: white;
     display: grid;
     place-items: center;
     font-weight: 800;
-}
-
-.logo-badge {
     background: transparent;
     color: var(--purple);
     margin: 0 auto 8px;
 }
 
 .frog-mark {
+    width: 68px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
     background: transparent;
     color: white;
-    width: 68px;
 }
 
 .login-card h1 {
@@ -200,8 +200,7 @@ select {
     color: var(--muted);
 }
 
-.field-help,
-.forgot-link {
+.field-help {
     color: var(--muted);
     margin: 0 0 8px;
 }
@@ -264,12 +263,6 @@ select {
     justify-content: center;
 }
 
-.forgot-link {
-    color: var(--purple);
-    text-align: center;
-    margin-top: 18px;
-}
-
 .create-account-link {
     display: block;
     margin-top: 18px;
@@ -293,14 +286,6 @@ select {
 .create-account-link:focus-visible {
     outline: 2px solid var(--purple-dark);
     outline-offset: 2px;
-}
-
-.demo-box {
-    margin-top: 18px;
-    background: #f6f2fb;
-    border-radius: 14px;
-    padding: 14px 16px;
-    color: var(--purple-dark);
 }
 
 .flash {
@@ -491,7 +476,9 @@ select {
 }
 
 .status-chip.confirmed,
-.status-chip.published {
+.status-chip.published,
+.status-chip.pending,
+.status-chip.draft {
     background: var(--green-soft);
     color: #2e7d32;
 }
@@ -735,6 +722,24 @@ select {
     .availability-form {
         grid-template-columns: repeat(2, minmax(180px, 1fr));
     }
+
+    .app-frame,
+    .two-column,
+    .profile-grid,
+    .metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .left-rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .tour-stack,
+    .candidate-stack,
+    .tour-card-columns {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 700px) {
@@ -790,17 +795,12 @@ select {
 .avatar-small {
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: white;
-    color: var(--purple);
-    font-weight: 800;
-}
-
-.avatar-small {
     width: 56px;
     height: 56px;
+    border-radius: 50%;
     background: var(--purple);
     color: white;
+    font-weight: 800;
 }
 
 .profile-stats {
@@ -1064,39 +1064,32 @@ select {
     font-size: 0.78rem;
 }
 
+.priority-chip.first,
+.priority-chip.second,
+.priority-chip.third,
+.priority-chip.low {
+    color: #ffffff;
+}
+
 .priority-chip.first {
     background: #eea10a;
-    color: #ffffff;
 }
 
 .priority-chip.second {
     background: #5576ef;
-    color: #ffffff;
 }
 
 .priority-chip.third {
     background: #964ef2;
-    color: #ffffff;
 }
 
 .priority-chip.low {
     background: #a8afbb;
-    color: #ffffff;
 }
 
 .priority-chip.not-set {
     background: #dfe3e9;
     color: #4f5b73;
-}
-
-.inline-form {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
 }
 
 .ambassador-row {
@@ -1127,27 +1120,6 @@ select {
     cursor: pointer;
 }
 
-@media (max-width: 1200px) {
-
-    .app-frame,
-    .two-column,
-    .profile-grid,
-    .metric-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .left-rail {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-    }
-
-    .tour-stack,
-    .candidate-stack,
-    .tour-card-columns {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 760px) {
 
     .top-nav,
@@ -1176,4 +1148,5 @@ select {
     .tour-card-columns {
         grid-template-columns: 1fr;
     }
+}
 }

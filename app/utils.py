@@ -229,16 +229,8 @@ def _render_availability(context: dict) -> str:
     """
     user = context["user"]
     view = context["view"]
-    tabs = f"""
-    <div class=\"availability-tabs\">
-        <a class=\"tab-pill {'active' if view == 'dashboard' else ''}\" href=\"/ambassador/availability?view=dashboard\">Dashboard</a>
-        <a class=\"tab-pill {'active' if view == 'weekly' else ''}\" href=\"/ambassador/availability?view=weekly\">Weekly Availability</a>
-    </div>
-    """
-    if view == "dashboard":
-        main_panel = _availability_grid(context)
-    else:
-        main_panel = _availability_form(context)
+    tabs = _render_view_tabs(view)
+    main_panel = _availability_grid(context) if view == "dashboard" else _availability_form(context)
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -247,8 +239,7 @@ def _render_availability(context: dict) -> str:
                 <p>Set up your weekly schedule with preference rankings</p>
             </div>
         </div>
-        {_flash(context.get('message', ''), 'success')}
-        {_flash(context.get('error', ''), 'error')}
+        {_render_flash_messages(context)}
         <div class=\"info-panel\">
             <strong>How it Works</strong>
             <p><b>Weekly Availability:</b> Set your regular weekly schedule that repeats each week.</p>
@@ -281,8 +272,7 @@ def _render_profile(context: dict) -> str:
                 <p>Update your information to help us match you with the right tours and events</p>
             </div>
         </div>
-        {_flash(context.get('message', ''), 'success')}
-        {_flash(context.get('error', ''), 'error')}
+        {_render_flash_messages(context)}
         <div class=\"profile-grid\">
             <div class=\"profile-card\">
                 <h3>{escape(user['name'])}</h3>
@@ -311,6 +301,21 @@ def _render_profile(context: dict) -> str:
     return _shell(user, "profile", body, role="ambassador")
 
 
+def _render_report_rows(rows: list[dict]) -> str:
+    """Render report table body rows.
+
+    Inputs:
+        rows: Report row records.
+    Outputs:
+        HTML table rows with ambassador data.
+    """
+    row_html = "".join([
+        f'<tr><td>{escape(row["name"])}</td><td>{escape(row["email"])}</td><td>{escape(row.get("major") or "-")}</td><td>{escape(row.get("year") or "-")}</td><td>{row["assigned_tours"]}</td><td>{row["total_hours"]}</td></tr>'
+        for row in rows
+    ])
+    return row_html or '<tr><td colspan="6">No ambassadors matched the selected filters.</td></tr>'
+
+
 def _render_admin(context: dict) -> str:
     """Render the admin dashboard.
 
@@ -325,10 +330,7 @@ def _render_admin(context: dict) -> str:
     tours_markup = "".join(_tour_card(
         item, user['id']) for item in context["tours"])
     weekly_schedule = context["weekly_schedule"]
-    report_rows = "".join([
-        f'<tr><td>{escape(row["name"])}</td><td>{escape(row["email"])}</td><td>{escape(row.get("major") or "-")}</td><td>{escape(row.get("year") or "-")}</td><td>{row["assigned_tours"]}</td><td>{row["total_hours"]}</td></tr>'
-        for row in report["rows"]
-    ]) or '<tr><td colspan="6">No ambassadors matched the selected filters.</td></tr>'
+    report_rows = _render_report_rows(report["rows"])
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -337,8 +339,7 @@ def _render_admin(context: dict) -> str:
                 <p>Manage daily tours and ambassador assignments</p>
             </div>
         </div>
-        {_flash(context.get('message', ''), 'success')}
-        {_flash(context.get('error', ''), 'error')}
+        {_render_flash_messages(context)}
         <div class="metric-grid compact-metrics">
             {_metric_card('Total Ambassadors',
                           stat['total_ambassadors'], 'purple')}
@@ -411,20 +412,28 @@ def _schedule_block(schedule: dict, key: str, label: str, days: list[str]) -> st
         HTML table block.
     """
     headers = "".join([f"<th>{escape(day)} - {label}</th>" for day in days])
-    columns = ""
-    for day in days:
-        names = schedule[key][day]["names"]
-        entries = "".join(
-            [f"<div>{idx}. {escape(name)}</div>" for idx,
-             name in enumerate(names, start=1)]
-        )
-        columns += f"<td>{entries}</td>"
+    columns = "".join(_build_schedule_column(schedule, key, day) for day in days)
     return f"""
     <table class="report-table">
         <thead><tr>{headers}</tr></thead>
         <tbody><tr>{columns}</tr></tbody>
     </table>
     """
+
+
+def _build_schedule_column(schedule: dict, key: str, day: str) -> str:
+    """Build a single schedule table column.
+
+    Inputs:
+        schedule: Schedule payload from the query layer.
+        key: Block key in schedule payload.
+        day: Day label.
+    Outputs:
+        HTML table column with ambassador names.
+    """
+    names = schedule[key][day]["names"]
+    entries = "".join(f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
+    return f"<td>{entries}</td>"
 
 
 def _shell(user: dict, active: str, content: str, role: str) -> str:
@@ -538,22 +547,30 @@ def _side_nav(user: dict, active: str, role: str) -> str:
     Outputs:
         HTML for the side navigation.
     """
-    items = []
     if role == "admin":
-        items.append(
-            ("Admin Dashboard", "/admin", active == "admin"))
+        items = [("Admin Dashboard", "/admin", active == "admin")]
     else:
-        items.extend([
-            ("Dashboard",
-             "/ambassador/dashboard", active == "home"),
-            ("Submit Availability",
-             "/ambassador/availability?view=weekly", active == "availability"),
-            ("Profile Settings",
-             "/ambassador/profile", active == "profile"),
-        ])
-    links = "".join(
-        [f'<a class="quick-link {"active" if is_active else ""}" href="{href}">{label}</a>' for label, href, is_active in items])
+        items = [
+            ("Dashboard", "/ambassador/dashboard", active == "home"),
+            ("Submit Availability", "/ambassador/availability?view=weekly", active == "availability"),
+            ("Profile Settings", "/ambassador/profile", active == "profile"),
+        ]
+    links = "".join(_render_nav_link(label, href, is_active) for label, href, is_active in items)
     return f'<p class="quick-title">Quick Actions</p>{links}'
+
+
+def _render_nav_link(label: str, href: str, is_active: bool) -> str:
+    """Render a single navigation link.
+
+    Inputs:
+        label: Link text.
+        href: Link URL.
+        is_active: Whether the link is currently active.
+    Outputs:
+        HTML for one navigation link.
+    """
+    active_class = "active" if is_active else ""
+    return f'<a class="quick-link {active_class}" href="{href}">{label}</a>'
 
 
 def _pretty_date(date_text: str) -> str:
@@ -966,3 +983,89 @@ def _priority_class(priority: str) -> str:
         "Low Priority": "low",
     }
     return mapping.get(priority, "not-set")
+
+
+def _render_flash_messages(context: dict) -> str:
+    """Render flash messages from context.
+
+    Inputs:
+        context: Page context dictionary.
+    Outputs:
+        HTML for flash messages or empty string.
+    """
+    success = _flash(context.get('message', ''), 'success')
+    error = _flash(context.get('error', ''), 'error')
+    return f"{success}{error}"
+
+
+def _render_view_tabs(view: str) -> str:
+    """Render view tabs for availability page.
+
+    Inputs:
+        view: Currently active view name.
+    Outputs:
+        HTML for the view tabs.
+    """
+    return f"""
+    <div class=\"availability-tabs\">
+        <a class=\"tab-pill {'active' if view == 'dashboard' else ''}\" href=\"/ambassador/availability?view=dashboard\">Dashboard</a>
+        <a class=\"tab-pill {'active' if view == 'weekly' else ''}\" href=\"/ambassador/availability?view=weekly\">Weekly Availability</a>
+    </div>
+    """
+
+
+def _render_report_rows(rows: list[dict]) -> str:
+    """Render report table body rows.
+
+    Inputs:
+        rows: Report row records.
+    Outputs:
+        HTML table rows with ambassador data.
+    """
+    row_html = "".join([
+        f'<tr><td>{escape(row["name"])}</td><td>{escape(row["email"])}</td><td>{escape(row.get("major") or "-")}</td><td>{escape(row.get("year") or "-")}</td><td>{row["assigned_tours"]}</td><td>{row["total_hours"]}</td></tr>'
+        for row in rows
+    ])
+    return row_html or '<tr><td colspan="6">No ambassadors matched the selected filters.</td></tr>'
+
+
+def _render_nav_link(label: str, href: str, is_active: bool) -> str:
+    """Render a single navigation link.
+
+    Inputs:
+        label: Link text.
+        href: Link URL.
+        is_active: Whether the link is currently active.
+    Outputs:
+        HTML for one navigation link.
+    """
+    active_class = "active" if is_active else ""
+    return f'<a class="quick-link {active_class}" href="{href}">{label}</a>'
+
+
+def _build_schedule_column(schedule: dict, key: str, day: str) -> str:
+    """Build a single schedule table column.
+
+    Inputs:
+        schedule: Schedule payload from the query layer.
+        key: Block key in schedule payload.
+        day: Day label.
+    Outputs:
+        HTML table column with ambassador names.
+    """
+    names = schedule[key][day]["names"]
+    entries = "".join(f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
+    return f"<td>{entries}</td>"
+
+
+def _render_flash_messages(context: dict) -> str:
+    """Render flash messages from context.
+
+    Inputs:
+        context: Page context dictionary.
+    Outputs:
+        HTML for flash messages or empty string.
+    """
+    success = _flash(context.get('message', ''), 'success')
+    error = _flash(context.get('error', ''), 'error')
+    return f"{success}{error}"
