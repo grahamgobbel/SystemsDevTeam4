@@ -78,7 +78,8 @@ class SchedulingHandler(BaseHTTPRequestHandler):
                 body = render_page("login", {"message": params.get("message", [""])[
                                    0], "error": params.get("error", [""])[0]})
             elif parsed.path == "/register":
-                body = render_page("register", {"message": params.get("message", [""])[0], "error": params.get("error", [""])[0]})
+                body = render_page("register", {"message": params.get("message", [""])[
+                                   0], "error": params.get("error", [""])[0]})
             elif parsed.path == "/logout":
                 self._logout_session(conn)
                 redirect_response(

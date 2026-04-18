@@ -393,7 +393,8 @@ def create_account(
             status, ambassador_since, tours_completed, total_hours
         ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 'Medium', 'Active', ?, 0, 0)
         """,
-        (clean_name, clean_email, _hash_password(password), clean_role, str(date.today().year)),
+        (clean_name, clean_email, _hash_password(
+            password), clean_role, str(date.today().year)),
     )
     conn.commit()
     return True, "Account created successfully. Please sign in."
