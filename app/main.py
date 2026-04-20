@@ -1,7 +1,7 @@
 ﻿"""
 Application Title: TCU Ambassador Scheduling System
-Date: 2026-04-14
-Authors: SystemsDevTeam4
+Date: 2026-04-20
+Authors: Graham Gobbel
 Purpose: Run the HTTP server that serves the scheduling application and
 routes form submissions to the business-logic helpers.
 
@@ -66,6 +66,7 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
 
+        # Serve static CSS directly to keep page rendering simple.
         if parsed.path == "/static/styles.css":
             self._send_static("styles.css", "text/css; charset=utf-8")
             return
@@ -74,6 +75,7 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         initialize_database(conn)
 
         try:
+            # Route each path to its page builder and enforce role-based access.
             if parsed.path == "/":
                 body = render_page("login", {"message": params.get("message", [""])[
                                    0], "error": params.get("error", [""])[0]})
@@ -138,6 +140,7 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         initialize_database(conn)
 
         try:
+            # Route form actions to their handlers and return a redirect target.
             if parsed.path == "/login":
                 redirect, headers = self._handle_login(conn, form)
             elif parsed.path == "/register":
@@ -209,6 +212,7 @@ class SchedulingHandler(BaseHTTPRequestHandler):
         """
         token = self._session_token()
         user = get_user_by_session_token(conn, token)
+        # Role mismatch is treated as an authorization failure for the page.
         if not user or user.get("role") != role:
             raise PermissionError
         return int(user["id"])

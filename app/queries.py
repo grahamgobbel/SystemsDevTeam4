@@ -1,7 +1,7 @@
 ﻿"""
 Application Title: TCU Ambassador Scheduling System
-Date: 2026-04-14
-Authors: SystemsDevTeam4
+Date: 2026-04-20
+Authors: Graham Gobbel
 Purpose: Provide database setup, query helpers, validation, and dashboard
 data shaping for the scheduling application.
 """
@@ -252,6 +252,7 @@ def initialize_database(conn: sqlite3.Connection) -> None:
     )
     conn.commit()
 
+    # One-time cleanup for legacy demo rows from earlier iterations.
     if not conn.execute("SELECT value FROM app_meta WHERE key = 'demo_seed_cleaned'").fetchone():
         ambassador_row = conn.execute(
             "SELECT id FROM users WHERE lower(email) = lower('graham.gobbel@tcu.edu')"
@@ -270,6 +271,7 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         conn.commit()
 
     if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        # Existing DB: enforce expected baseline state and exit.
         _sync_fixed_daily_tours(conn)
         _normalize_ambassador_roster(conn, MAX_AMBASSADORS)
         _ensure_password_hashes(conn)
@@ -1094,6 +1096,7 @@ def auto_assign_daily_tours(conn: sqlite3.Connection):
     """
     _sync_fixed_daily_tours(conn)
 
+    # Rebuild assignments from scratch so each run reflects latest availability.
     conn.execute("DELETE FROM tour_assignments")
 
     tours = [
@@ -1161,6 +1164,7 @@ def auto_assign_daily_tours(conn: sqlite3.Connection):
                         )
                     )
 
+                # Rank by preference first, then by current load to spread work.
         candidates.sort()
         selected = candidates[: tour["ambassadors_needed"]]
 
@@ -1498,6 +1502,7 @@ def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
     remove_ids: list[int] = []
     for row in existing:
         key = (row["tour_date"], row["start_time"], row["end_time"])
+        # Remove duplicate or out-of-pattern daily tours.
         if key not in expected_by_key or key in seen_keys:
             remove_ids.append(row["id"])
         else:
@@ -1528,6 +1533,7 @@ def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
         )
 
     for key, expected in expected_by_key.items():
+        # Backfill any missing fixed tour slots for the week.
         if key not in seen_keys:
             conn.execute(
                 "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 1)",

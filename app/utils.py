@@ -1,7 +1,7 @@
 ﻿"""
 Application Title: TCU Ambassador Scheduling System
-Date: 2026-04-14
-Authors: SystemsDevTeam4
+Date: 2026-04-20
+Authors: Graham Gobbel
 Purpose: Render application pages and reusable HTML fragments for the
 scheduling interface.
 """
@@ -65,6 +65,7 @@ def render_page(page: str, context: dict) -> str:
     Outputs:
         Full HTML page as a string.
     """
+    # Lightweight page dispatcher used by request handlers.
     if page == "login":
         return _render_login(context)
     if page == "register":
@@ -88,6 +89,7 @@ def _render_login(context: dict) -> str:
     Outputs:
         HTML for the login screen.
     """
+    # Flash messages are pre-escaped by helper functions.
     error = _flash(context.get("error", ""), "error")
     message = _flash(context.get("message", ""), "success")
     return f"""<!doctype html>
