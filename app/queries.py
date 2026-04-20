@@ -154,7 +154,7 @@ MAX_ELIGIBLE_PER_TOUR = 10
 DEFAULT_DEMO_PASSWORD = "tcu12345"
 PASSWORD_ITERATIONS = 120000
 SAMPLE_STUDENT_SQL_PATH = Path(__file__).resolve(
-).parent.parent / "sql" / "sample_student_database.sql"
+).parent.parent / "data" / "sample_student_database.sql"
 DAILY_TOUR_SLOTS = [
     ("Monday", "10:00 AM", "11:00 AM", 7),
     ("Tuesday", "10:00 AM", "11:00 AM", 7),

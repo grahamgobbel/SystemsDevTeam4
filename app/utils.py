@@ -230,7 +230,8 @@ def _render_availability(context: dict) -> str:
     user = context["user"]
     view = context["view"]
     tabs = _render_view_tabs(view)
-    main_panel = _availability_grid(context) if view == "dashboard" else _availability_form(context)
+    main_panel = _availability_grid(
+        context) if view == "dashboard" else _availability_form(context)
     body = f"""
     <section class=\"content-main\">
         <div class=\"page-header compact\">
@@ -412,7 +413,8 @@ def _schedule_block(schedule: dict, key: str, label: str, days: list[str]) -> st
         HTML table block.
     """
     headers = "".join([f"<th>{escape(day)} - {label}</th>" for day in days])
-    columns = "".join(_build_schedule_column(schedule, key, day) for day in days)
+    columns = "".join(_build_schedule_column(schedule, key, day)
+                      for day in days)
     return f"""
     <table class="report-table">
         <thead><tr>{headers}</tr></thead>
@@ -432,7 +434,8 @@ def _build_schedule_column(schedule: dict, key: str, day: str) -> str:
         HTML table column with ambassador names.
     """
     names = schedule[key][day]["names"]
-    entries = "".join(f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
+    entries = "".join(
+        f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
     return f"<td>{entries}</td>"
 
 
@@ -552,10 +555,12 @@ def _side_nav(user: dict, active: str, role: str) -> str:
     else:
         items = [
             ("Dashboard", "/ambassador/dashboard", active == "home"),
-            ("Submit Availability", "/ambassador/availability?view=weekly", active == "availability"),
+            ("Submit Availability", "/ambassador/availability?view=weekly",
+             active == "availability"),
             ("Profile Settings", "/ambassador/profile", active == "profile"),
         ]
-    links = "".join(_render_nav_link(label, href, is_active) for label, href, is_active in items)
+    links = "".join(_render_nav_link(label, href, is_active)
+                    for label, href, is_active in items)
     return f'<p class="quick-title">Quick Actions</p>{links}'
 
 
@@ -1054,7 +1059,8 @@ def _build_schedule_column(schedule: dict, key: str, day: str) -> str:
         HTML table column with ambassador names.
     """
     names = schedule[key][day]["names"]
-    entries = "".join(f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
+    entries = "".join(
+        f"<div>{idx}. {escape(name)}</div>" for idx, name in enumerate(names, start=1))
     return f"<td>{entries}</td>"
 
 

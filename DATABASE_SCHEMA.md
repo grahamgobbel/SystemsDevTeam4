@@ -19,17 +19,13 @@ Defines scheduling capacity rules for each day/time combination.
 
 **Example Queries**:
 ```sql
--- Get parameters for Friday 10 AM
 SELECT * FROM shift_parameters WHERE day = 'Friday' AND time_slot = '10:00 AM';
 
--- Find all group tour slots
 SELECT day, time_slot FROM shift_parameters WHERE is_group_tour = 1;
 
--- Get slots requiring heavy staffing
 SELECT day, time_slot, min_ambassadors FROM shift_parameters WHERE min_ambassadors >= 5;
 ```
 
----
 
 ## Table: availability_periods
 
@@ -47,17 +43,13 @@ Tracks the availability submission windows for each semester.
 
 **Example Queries**:
 ```sql
--- Get current submission windows
 SELECT * FROM availability_periods WHERE end_date >= date('now');
 
--- Get deadline for Spring 2026
 SELECT submission_deadline FROM availability_periods WHERE semester = 'Spring 2026';
 
--- Find overdue availability submissions
 SELECT * FROM availability_periods WHERE submission_deadline < date('now');
 ```
 
----
 
 ## Table: users (Enhanced)
 
@@ -90,7 +82,6 @@ Ambassador and admin account information.
 | tours_completed | INTEGER | Lifetime tour count |
 | total_hours | INTEGER | Lifetime hours worked |
 
----
 
 ## Table: tours (Enhanced)
 
@@ -120,17 +111,13 @@ Tour schedule records.
 
 **Example Queries**:
 ```sql
--- Get all tours for Spring 2026
 SELECT * FROM tours WHERE semester = 'Spring 2026' ORDER BY tour_date;
 
--- Find unpublished tours
 SELECT * FROM tours WHERE published = 0;
 
--- Get Friday tours with busiest times
 SELECT * FROM tours WHERE tour_date LIKE '%-05' AND start_time = '10:00 AM';
 ```
 
----
 
 ## Table: availability_slots
 
@@ -146,7 +133,6 @@ Ambassador availability submissions (unchanged, but now semester-aware through a
 | priority | TEXT | How full this slot can be (1st/2nd/3rd/Low Priority) |
 | submitted | INTEGER | 1 if submitted in current period, 0 otherwise |
 
----
 
 ## Constants Defined
 
@@ -170,7 +156,6 @@ VALID_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 VALID_PRIORITIES = ["1st Priority", "2nd Priority", "3rd Priority", "Low Priority"]
 ```
 
----
 
 ## Common Queries and Use Cases
 
@@ -184,7 +169,6 @@ WHERE sp.day = (SELECT strftime('%A', tours.tour_date) FROM tours WHERE tours.id
 
 ### 2. Find Ambassadors for a Tour Slot
 ```sql
--- Find ambassadors available for a specific tour
 SELECT users.id, users.name, users.gender, COUNT(ta.id) AS current_assignments
 FROM users
 LEFT JOIN tour_assignments ta ON ta.ambassador_id = users.id
@@ -196,7 +180,6 @@ HAVING current_assignments < 5;  -- Not overbooked
 
 ### 3. Check Current Staffing Levels
 ```sql
--- Get current tour assignments by day/time
 SELECT sp.day, sp.time_slot, COUNT(ta.id) AS assigned_count, sp.min_ambassadors, sp.max_ambassadors
 FROM shift_parameters sp
 LEFT JOIN tours t ON strftime('%A', t.tour_date) = sp.day 
@@ -208,7 +191,6 @@ GROUP BY sp.day, sp.time_slot;
 
 ### 4. Verify Gender Balance
 ```sql
--- Check if shifts meet minimum male ambassador requirement
 SELECT t.id, t.tour_type, t.tour_date, 
        COUNT(CASE WHEN u.gender = 'Male' THEN 1 END) AS male_count,
        COUNT(CASE WHEN u.gender != 'Male' THEN 1 END) AS other_count,
@@ -224,10 +206,8 @@ HAVING male_count < sp.min_male_ambassadors;
 
 ### 5. Semester Management
 ```sql
--- Switch ambassadors to new semester
 UPDATE users SET current_semester = 'Fall 2026' WHERE current_semester = 'Spring 2026';
 
--- Clear availability for new semester
 DELETE FROM availability_slots 
 WHERE user_id IN (SELECT id FROM users WHERE current_semester = 'Fall 2026') 
   AND submitted = 0;
