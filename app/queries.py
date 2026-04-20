@@ -509,9 +509,8 @@ def _ensure_password_hashes(conn: sqlite3.Connection) -> None:
     updates = []
     for row in rows:
         stored = row.get("password") or ""
-        if stored.startswith("pbkdf2_sha256$"):
-            continue
-        updates.append((_hash_password(DEFAULT_DEMO_PASSWORD), row["id"]))
+        if not stored.startswith("pbkdf2_sha256$"):
+            updates.append((_hash_password(DEFAULT_DEMO_PASSWORD), row["id"]))
     if updates:
         conn.executemany("UPDATE users SET password = ? WHERE id = ?", updates)
         conn.commit()
@@ -737,29 +736,24 @@ def build_admin_dashboard(
         eligible = []
         for ambassador in ambassadors:
             ambassador_id = ambassador["id"]
-            if ambassador_id in assigned_ids:
-                continue
-            if ambassador["name"] in assigned_names:
-                continue
-            rank = _best_priority_for_tour(
-                slots_by_user.get(ambassador_id, []),
-                tour_day,
-                tour["start_time"],
-                tour["end_time"],
-            )
-            if rank is None:
-                continue
-
-            eligible.append(
-                {
-                    "id": ambassador_id,
-                    "name": ambassador["name"],
-                    "email": ambassador["email"],
-                    "total_hours": ambassador["total_hours"],
-                    "priority_rank": rank,
-                    "priority": _priority_label_from_rank(rank),
-                }
-            )
+            if ambassador_id not in assigned_ids and ambassador["name"] not in assigned_names:
+                rank = _best_priority_for_tour(
+                    slots_by_user.get(ambassador_id, []),
+                    tour_day,
+                    tour["start_time"],
+                    tour["end_time"],
+                )
+                if rank is not None:
+                    eligible.append(
+                        {
+                            "id": ambassador_id,
+                            "name": ambassador["name"],
+                            "email": ambassador["email"],
+                            "total_hours": ambassador["total_hours"],
+                            "priority_rank": rank,
+                            "priority": _priority_label_from_rank(rank),
+                        }
+                    )
 
         eligible.sort(key=lambda row: (
             row["priority_rank"], row["total_hours"], row["name"]))
@@ -1149,29 +1143,23 @@ def auto_assign_daily_tours(conn: sqlite3.Connection):
         for ambassador in ambassadors:
             user_id = ambassador["id"]
             name = ambassador["name"]
-            if tour_day in assigned_days_by_user[user_id]:
-                continue
-            if name in selected_names:
-                continue
-
-            best_priority = _best_priority_for_tour(
-                slots_by_user.get(user_id, []),
-                tour_day,
-                tour["start_time"],
-                tour["end_time"],
-            )
-            if best_priority is None:
-                continue
-
-            candidates.append(
-                (
-                    best_priority,
-                    assigned_tours_by_user[user_id],
-                    ambassador["total_hours"],
-                    name,
-                    user_id,
+            if tour_day not in assigned_days_by_user[user_id] and name not in selected_names:
+                best_priority = _best_priority_for_tour(
+                    slots_by_user.get(user_id, []),
+                    tour_day,
+                    tour["start_time"],
+                    tour["end_time"],
                 )
-            )
+                if best_priority is not None:
+                    candidates.append(
+                        (
+                            best_priority,
+                            assigned_tours_by_user[user_id],
+                            ambassador["total_hours"],
+                            name,
+                            user_id,
+                        )
+                    )
 
         candidates.sort()
         selected = candidates[: tour["ambassadors_needed"]]
@@ -1512,21 +1500,21 @@ def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
         key = (row["tour_date"], row["start_time"], row["end_time"])
         if key not in expected_by_key or key in seen_keys:
             remove_ids.append(row["id"])
-            continue
-        seen_keys.add(key)
-        keep_ids.add(row["id"])
-        expected = expected_by_key[key]
-        if row["ambassadors_needed"] != expected["ambassadors_needed"]:
-            conn.execute(
-                "UPDATE tours SET ambassadors_needed = ?, location = ?, published = 1 WHERE id = ?",
-                (expected["ambassadors_needed"],
-                 DAILY_TOUR_LOCATION, row["id"]),
-            )
         else:
-            conn.execute(
-                "UPDATE tours SET location = ?, published = 1 WHERE id = ?",
-                (DAILY_TOUR_LOCATION, row["id"]),
-            )
+            seen_keys.add(key)
+            keep_ids.add(row["id"])
+            expected = expected_by_key[key]
+            if row["ambassadors_needed"] != expected["ambassadors_needed"]:
+                conn.execute(
+                    "UPDATE tours SET ambassadors_needed = ?, location = ?, published = 1 WHERE id = ?",
+                    (expected["ambassadors_needed"],
+                     DAILY_TOUR_LOCATION, row["id"]),
+                )
+            else:
+                conn.execute(
+                    "UPDATE tours SET location = ?, published = 1 WHERE id = ?",
+                    (DAILY_TOUR_LOCATION, row["id"]),
+                )
 
     if remove_ids:
         placeholders = ",".join(["?"] * len(remove_ids))
@@ -1540,19 +1528,18 @@ def _sync_fixed_daily_tours(conn: sqlite3.Connection) -> None:
         )
 
     for key, expected in expected_by_key.items():
-        if key in seen_keys:
-            continue
-        conn.execute(
-            "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 1)",
-            (
-                DAILY_TOUR_TYPE,
-                expected["tour_date"],
-                expected["start_time"],
-                expected["end_time"],
-                DAILY_TOUR_LOCATION,
-                expected["ambassadors_needed"],
-            ),
-        )
+        if key not in seen_keys:
+            conn.execute(
+                "INSERT INTO tours (tour_type, tour_date, start_time, end_time, location, ambassadors_needed, published) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                (
+                    DAILY_TOUR_TYPE,
+                    expected["tour_date"],
+                    expected["start_time"],
+                    expected["end_time"],
+                    DAILY_TOUR_LOCATION,
+                    expected["ambassadors_needed"],
+                ),
+            )
 
     conn.commit()
 
@@ -1628,12 +1615,11 @@ def _best_priority_for_tour(slots: list[dict], day: str, start_time: str, end_ti
     ranks = []
 
     for slot in slots:
-        if slot["day"] != day:
-            continue
-        slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
-        slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
-        if slot_start <= tour_start and slot_end >= tour_end:
-            ranks.append(_priority_rank(slot))
+        if slot["day"] == day:
+            slot_start = datetime.strptime(slot["start_time"], "%I:%M %p")
+            slot_end = datetime.strptime(slot["end_time"], "%I:%M %p")
+            if slot_start <= tour_start and slot_end >= tour_end:
+                ranks.append(_priority_rank(slot))
 
     if not ranks:
         return None
@@ -1672,11 +1658,10 @@ def _build_weekly_schedule(conn: sqlite3.Connection) -> dict:
     for row in rows:
         day = datetime.strptime(row["tour_date"], "%Y-%m-%d").strftime("%A")
         time = row["start_time"]
-        if day not in days or time not in schedule:
-            continue
-        schedule[time][day]["needed"] = row["ambassadors_needed"]
-        if row["name"]:
-            schedule[time][day]["names"].append(row["name"])
+        if day in days and time in schedule:
+            schedule[time][day]["needed"] = row["ambassadors_needed"]
+            if row["name"]:
+                schedule[time][day]["names"].append(row["name"])
 
     for time in schedule:
         for day in days:
