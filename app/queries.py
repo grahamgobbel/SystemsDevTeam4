@@ -641,8 +641,50 @@ def build_admin_dashboard(
     _sync_fixed_daily_tours(conn)
 
     search_term = ambassador_search.strip()
+
+    # Fetch filtered ambassadors
+    ambassadors = _get_filtered_ambassadors(conn, search_term)
+
+    # Fetch and filter tours with assignment data
+    tours = _get_filtered_tours(conn, tour_status)
+
+    # Enrich tours with eligible ambassadors per tour
+    tours = _enrich_tours_with_eligible_ambassadors(
+        conn, tours, ambassadors)
+
+    # Build tour status report and calculate stats
+    report_data = _get_tour_status_report(conn, search_term)
+    admin_stats = _calculate_admin_stats(tours, len(ambassadors), report_data)
+
+    return {
+        "user": user,
+        "message": message,
+        "error": error,
+        "ambassadors": ambassadors,
+        "tours": tours,
+        "filters": {
+            "search": search_term,
+            "tour_status": _normalize_tour_status(tour_status),
+            "tour_status_options": ["all", "published", "draft", "assigned", "unassigned"],
+        },
+        "report": report_data,
+        "stats": admin_stats,
+        "weekly_schedule": _build_weekly_schedule(conn),
+    }
+
+
+def _get_filtered_ambassadors(conn: sqlite3.Connection, search_term: str = "") -> list[dict]:
+    """Retrieve ambassadors with optional search filtering.
+
+    Inputs:
+        conn: Open SQLite connection.
+        search_term: Optional search text for name, email, or major.
+    Outputs:
+        List of ambassador dictionaries.
+    """
     ambassador_filters = ["role = 'ambassador'"]
     ambassador_params: list[str] = []
+
     if search_term:
         wildcard = f"%{search_term}%"
         ambassador_filters.append(
@@ -658,7 +700,18 @@ def build_admin_dashboard(
         dict(row)
         for row in conn.execute(ambassador_query, tuple(ambassador_params)).fetchall()
     ]
+    return ambassadors
 
+
+def _get_filtered_tours(conn: sqlite3.Connection, tour_status: str = "all") -> list[dict]:
+    """Retrieve daily tours with assignment counts and filter by status.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tour_status: Filter type ("all", "published", "draft", "assigned", "unassigned").
+    Outputs:
+        List of tour dictionaries with assignment metadata.
+    """
     tours = [
         dict(row)
         for row in conn.execute(
@@ -685,9 +738,7 @@ def build_admin_dashboard(
     # 10 fixed semester scheduling cards.
     tours = tours[:10]
 
-    normalized_tour_status = tour_status if tour_status in {
-        "all", "published", "draft", "assigned", "unassigned"
-    } else "all"
+    normalized_tour_status = _normalize_tour_status(tour_status)
 
     if normalized_tour_status == "published":
         tours = [tour for tour in tours if tour["published"] == 1]
@@ -706,6 +757,37 @@ def build_admin_dashboard(
             if tour["assigned_count"] < tour["ambassadors_needed"]
         ]
 
+    return tours
+
+
+def _normalize_tour_status(tour_status: str) -> str:
+    """Validate and normalize tour status filter.
+
+    Inputs:
+        tour_status: Requested filter status.
+    Outputs:
+        Normalized status or "all" if invalid.
+    """
+    return tour_status if tour_status in {
+        "all", "published", "draft", "assigned", "unassigned"
+    } else "all"
+
+
+def _enrich_tours_with_eligible_ambassadors(
+    conn: sqlite3.Connection,
+    tours: list[dict],
+    ambassadors: list[dict],
+) -> list[dict]:
+    """Enrich each tour with eligible ambassadors based on availability.
+
+    Inputs:
+        conn: Open SQLite connection.
+        tours: List of tour dictionaries.
+        ambassadors: List of available ambassadors.
+    Outputs:
+        Tours list with added eligibility and assignment data.
+    """
+    # Load all availability slots grouped by user
     availability_rows = [
         dict(row)
         for row in conn.execute(
@@ -717,6 +799,7 @@ def build_admin_dashboard(
         slots_by_user.setdefault(slot["user_id"], []).append(slot)
 
     for tour in tours:
+        # Get assigned people for this tour
         assigned_people = [
             dict(row)
             for row in conn.execute(
@@ -735,6 +818,7 @@ def build_admin_dashboard(
         tour_day = datetime.strptime(
             tour["tour_date"], "%Y-%m-%d").strftime("%A")
 
+        # Calculate eligible ambassadors for this tour
         eligible = []
         for ambassador in ambassadors:
             ambassador_id = ambassador["id"]
@@ -764,6 +848,18 @@ def build_admin_dashboard(
         tour["remaining_slots"] = max(
             tour["ambassadors_needed"] - tour["assigned_count"], 0)
 
+    return tours
+
+
+def _get_tour_status_report(conn: sqlite3.Connection, search_term: str = "") -> dict:
+    """Generate assignment status report for all ambassadors.
+
+    Inputs:
+        conn: Open SQLite connection.
+        search_term: Optional search filter for ambassadors.
+    Outputs:
+        Dictionary with report metadata and rows.
+    """
     report_query = (
         "SELECT users.id, users.name, users.email, users.major, users.year, users.total_hours, "
         "COUNT(tour_assignments.id) AS assigned_tours "
@@ -772,10 +868,12 @@ def build_admin_dashboard(
         "WHERE role = 'ambassador'"
     )
     report_params: list[str] = []
+
     if search_term:
         wildcard = f"%{search_term}%"
         report_query += " AND (users.name LIKE ? OR users.email LIKE ? OR users.major LIKE ?)"
         report_params.extend([wildcard, wildcard, wildcard])
+
     report_query += " GROUP BY users.id ORDER BY assigned_tours DESC, users.total_hours DESC, users.name"
     report_rows = [
         dict(row)
@@ -787,6 +885,25 @@ def build_admin_dashboard(
                          len(assignment_totals), 2) if assignment_totals else 0
     max_assigned = max(assignment_totals) if assignment_totals else 0
 
+    return {
+        "generated_on": date.today().isoformat(),
+        "rows": report_rows,
+        "total_rows": len(report_rows),
+        "avg_assigned": avg_assigned,
+        "max_assigned": max_assigned,
+    }
+
+
+def _calculate_admin_stats(tours: list[dict], total_ambassadors: int, report_data: dict) -> dict:
+    """Calculate admin dashboard summary statistics.
+
+    Inputs:
+        tours: List of enriched tour dictionaries.
+        total_ambassadors: Total ambassador count.
+        report_data: Report data dictionary with assignment stats.
+    Outputs:
+        Dictionary with stats summary.
+    """
     scheduled = len(tours)
     assigned = sum(
         1
@@ -803,32 +920,13 @@ def build_admin_dashboard(
         for tour in tours
         if tour["assigned_count"] == 0
     )
+
     return {
-        "user": user,
-        "message": message,
-        "error": error,
-        "ambassadors": ambassadors,
-        "tours": tours,
-        "filters": {
-            "search": search_term,
-            "tour_status": normalized_tour_status,
-            "tour_status_options": ["all", "published", "draft", "assigned", "unassigned"],
-        },
-        "report": {
-            "generated_on": date.today().isoformat(),
-            "rows": report_rows,
-            "total_rows": len(report_rows),
-            "avg_assigned": avg_assigned,
-            "max_assigned": max_assigned,
-        },
-        "stats": {
-            "total_ambassadors": len(ambassadors),
-            "scheduled": scheduled,
-            "assigned": assigned,
-            "in_progress": in_progress,
-            "unassigned": unassigned,
-        },
-        "weekly_schedule": _build_weekly_schedule(conn),
+        "total_ambassadors": total_ambassadors,
+        "scheduled": scheduled,
+        "assigned": assigned,
+        "in_progress": in_progress,
+        "unassigned": unassigned,
     }
 
 
