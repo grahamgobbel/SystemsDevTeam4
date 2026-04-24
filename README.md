@@ -24,4 +24,17 @@ The codebase is split into small modules instead of one large file:
 This structure keeps the user interface separate from the data-handling logic where practical. The main program file has a top-level `main()` function, the application includes a class with methods in the request handler, and the Python code follows standard naming conventions without using `break`, `continue`, or loop `else` statements.
 
 
-Then open `http://127.0.0.1:8000`.
+- `styles.css` defines the visual design layout structure including component styling, and responsive behavior.
+- `sample_student_database.sql` data for testing core features.
+- `.gitkeep` to ensure that empty directories are tracked by Git and maintain required folder structure.
+- `.gitignore` excludes unnecessary or sensitive files from version control.
+
+## Run
+
+```bash
+python app/main.py
+
+```
+HTTP Opem `http://127.0.0.1:8000`.
+
+To run the application, execute the command python app/main.py in your terminal, which starts the local server, then open HTTP in your browser to access the system.
