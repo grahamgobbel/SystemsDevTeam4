@@ -1,10 +1,10 @@
 # TCU Ambassador Scheduling System
 
-A role-based scheduling application for TCU Admissions ambassadors and administrators.
+A role-based scheduling application for TCU Admissions ambassadors and administrators. Centralizes scheduling operations to reduce manual effort amd improve data consistency.
 
 ## Screens
 
-- Email-based login for admin and ambassador views during development.
+- Email-based login that identifies user status.
 - Ambassador dashboard with upcoming assignments and notifications.
 - Availability module with a weekly drafting view and dashboard grid.
 - Profile management for academic information and personality traits.
@@ -23,10 +23,5 @@ The codebase is split into small modules instead of one large file:
 
 This structure keeps the user interface separate from the data-handling logic where practical. The main program file has a top-level `main()` function, the application includes a class with methods in the request handler, and the Python code follows standard naming conventions without using `break`, `continue`, or loop `else` statements.
 
-## Run
-
-```bash
-python app/main.py
-```
 
 Then open `http://127.0.0.1:8000`.
