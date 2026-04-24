@@ -1,16 +1,16 @@
 # TCU Ambassador Scheduling System
 
-A role-based scheduling application for TCU Admissions ambassadors and administrators.
+A role-based scheduling application for TCU Admissions ambassadors and administrators. Centralizes scheduling operations to reduce manual effort amd improve data consistency.
 
 ## Screens
 
-- Email-based login for admin and ambassador views during development.
+- Email-based login that identifies user status.
 - Ambassador dashboard with upcoming assignments and notifications.
 - Availability module with a weekly drafting view and dashboard grid.
 - Profile management for academic information and personality traits.
 - Admin dashboard for tours, assignments, and ambassador roster management.
 
-The application supports a connected workflow for adding records, filtering and searching data, updating ambassador information, and generating a workload report from the same admin and ambassador pages.
+The application supports a connected workflow that links ambassadors, their schedules, and assigned tour dates. It is designed to filter records, search data, and update information efficiently, with the goal of simplifying report generation for ambassadors and enabling better tour outcomes through data-driven insights across the different screens.
 
 ## Architecture
 
@@ -23,10 +23,18 @@ The codebase is split into small modules instead of one large file:
 
 This structure keeps the user interface separate from the data-handling logic where practical. The main program file has a top-level `main()` function, the application includes a class with methods in the request handler, and the Python code follows standard naming conventions without using `break`, `continue`, or loop `else` statements.
 
+
+- `styles.css` defines the visual design layout structure including component styling, and responsive behavior.
+- `sample_student_database.sql` data for testing core features.
+- `.gitkeep` to ensure that empty directories are tracked by Git and maintain required folder structure.
+- `.gitignore` excludes unnecessary or sensitive files from version control.
+
 ## Run
 
 ```bash
 python app/main.py
-```
 
-Then open `http://127.0.0.1:8000`.
+```
+HTTP Opem `http://127.0.0.1:8000`.
+
+To run the application, execute the command python app/main.py in your terminal, which starts the local server, then open HTTP in your browser to access the system.
